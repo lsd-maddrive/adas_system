@@ -1,0 +1,36 @@
+repos:
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.5.0
+    hooks:
+      - id: nbstripout
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v2.3.0
+    hooks:
+      # https://pre-commit.com/hooks.html
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+  - repo: https://github.com/pycqa/flake8
+    rev: 3.9.2 # pick a git hash / tag to point to
+    hooks:
+      - id: flake8
+  - repo: https://github.com/humitos/mirrors-autoflake
+    rev: v1.3
+    hooks:
+      - id: autoflake
+        args:
+          [
+            "--in-place",
+            "--remove-all-unused-imports",
+            "--remove-unused-variable",
+            "--remove-duplicate-keys",
+          ]
+
+  - repo: local
+    hooks:
+      # Added as local to be installed and used in code editor
+      - id: black
+        name: black
+        entry: poetry run black --config pyproject.toml
+        language: system
+        types: [python]
