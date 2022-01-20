@@ -6,6 +6,7 @@ data/*
 **/__pycache__/
 
 notebooks/*.pt
+!notebooks/YoloV5Last.pt
 !notebooks/nt_helper/*
 # Byte-compiled / optimized / DLL files
 __pycache__/

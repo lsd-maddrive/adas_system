@@ -143,6 +143,7 @@ class CreateDataSet(torch.utils.data.Dataset):
         assert im is not None, f"Image Not Found {path}"
 
         r = self.img_size / max(h0, w0)  # ratio
+
         if r != 1:  # if sizes are not equal
             im = cv2.resize(
                 im,
