@@ -247,7 +247,15 @@ class CreateDataSet(torch.utils.data.Dataset):
 
 
 def createDataLoaderAndDataSet(
-    df, set_label, imgsz, hyp_arg, batch_size, hyp=None, augment=False, shuffle=True
+    df,
+    set_label,
+    imgsz,
+    hyp_arg,
+    batch_size,
+    hyp=None,
+    augment=False,
+    shuffle=True,
+    nw=0,
 ):
 
     from torch.utils.data import DataLoader
@@ -261,7 +269,7 @@ def createDataLoaderAndDataSet(
         dataset,  # InfiniteDataLoader ?
         batch_size=batch_size,
         shuffle=shuffle and sampler is None,
-        # num_workers=nw,  # doesnt work in Windows
+        num_workers=nw,  # doesnt work in Windows
         sampler=sampler,
         pin_memory=True,
         collate_fn=CreateDataSet.collate_fn,

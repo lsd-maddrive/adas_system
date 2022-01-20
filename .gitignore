@@ -1,11 +1,12 @@
 .git/
 data/*
+!data/*.csv
 **/*.ipynb_checkpoints/
 */.ipynb_checkpoints/*.ipynb
 **/__pycache__/
 
 notebooks/*.pt
-
+!notebooks/nt_helper/*
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
