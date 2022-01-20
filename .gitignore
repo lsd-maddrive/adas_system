@@ -2,6 +2,9 @@
 data/*
 **/*.ipynb_checkpoints/
 */.ipynb_checkpoints/*.ipynb
+**/__pycache__/
+
+notebooks/*.pt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
