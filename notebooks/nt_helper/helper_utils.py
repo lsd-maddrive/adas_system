@@ -345,7 +345,7 @@ class makeDetectFromModel(nn.Module):
             classes=classes,
             agnostic=agnostic,
             multi_label=multi_label,
-            labels=(),
+            labels=labels,
             max_det=max_det,
         )
 
@@ -439,10 +439,11 @@ def getMaxIndex(t_arr):
     return np.argmax(t_arr)
 
 
-def getLabelFromModelOutput(t_arr, MODEL_CLASS_UNMAP):
+def getLabelFromModelOutput(t_arr, MODEL_CLASS_UNMAP_):
     max_arg = getMaxIndex(t_arr)
-    # print(max_arg)
-    return MODEL_CLASS_UNMAP[max_arg]
+    print(max_arg)
+    print(MODEL_CLASS_UNMAP_)
+    return MODEL_CLASS_UNMAP_[max_arg]
 
 
 def showImg(img, label=None):

@@ -36,7 +36,31 @@
 # TO DO
 - [ ] Метрики по классификатору
 - [ ] Расположение весов классификатора перенести [data -> notebooks? ]
+- [ ] Рефактор датасетов
 - [ ] Метрики детектора
 - [ ] DeepSort для детектора
 - [ ] Рефактор кода
 - [ ] Поддержка TPU? uoss.py err
+
+
+
+# Используемые датасеты
+| Название | Описание | Источник |
+|-|-|-|
+| RTSD Public | Состоит из нескольких частей, включая "full-frames" -  размеченные кадры с видеорегистратора; "detection" - датасет для детекции вобще всего, включая края дороги; "classification" - датасет для классификации знаков | [Ссылка](https://disk.yandex.ru/d/TX5k2hkEm9wqZ) <br /> <br /> [Источник ссылки](https://github.com/sqrlfirst/traffic_sign_work) |
+| GTSRB | Немецкий набор знаков, в случае нехватки буду брать отсюда | [Ссылка](https://www.kaggle.com/meowmeowmeowmeowmeow/gtsrb-german-traffic-sign) |
+
+
+>Из RTSD собирается pandas.DataFrame, который является входом DataLoader'ов моделей
+
+
+# Пример работы:
+### Классификатор примеры
+
+?
+
+### Детектор примеры
+
+<img style="float: right;" src="./screenshots/detector1.png" width=400>
+
+<img style="float: left;" src="./screenshots/detector2.png" width=400>
