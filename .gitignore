@@ -1,6 +1,7 @@
 .git/
 data/*
 !data/*.csv
+!data/reg_videos
 **/*.ipynb_checkpoints/
 */.ipynb_checkpoints/*.ipynb
 **/__pycache__/
