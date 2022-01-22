@@ -16,7 +16,7 @@
 * 1_ClassifierResearch - классификатор resnet18 для распознования знаков. В ходе обучения сохраняет веса в data/resnet18_rtsd_test. (<b>FIX ME</b>)
 * 2_YoloDetection - детектор на основе YoloV5. В ходе обучения сохраняет веса в notebooks/YoloV5Last.pt. При обучении в Google Colab сохраняет итерации обучения в корень гугл диска.
 * VideoTest - использует YoloV5 для демонстрации на видео с регистратора (data/reg_videos/1.mp4)
-
+* RTSD-R_MERGED - создает удобный формат из RTDS. Вероятно не запуститься :(
 
 # Как запустить
 ## Для ноутбуков 1_ClassifierResearch или 2_YoloDetection
@@ -47,11 +47,13 @@
 # Используемые датасеты
 | Название | Описание | Источник |
 |-|-|-|
-| RTSD Public | Состоит из нескольких частей, включая "full-frames" -  размеченные кадры с видеорегистратора; "detection" - датасет для детекции вобще всего, включая края дороги; "classification" - датасет для классификации знаков | [Ссылка](https://disk.yandex.ru/d/TX5k2hkEm9wqZ) <br /> <br /> [Источник ссылки](https://github.com/sqrlfirst/traffic_sign_work) |
-| GTSRB | Немецкий набор знаков, в случае нехватки буду брать отсюда | [Ссылка](https://www.kaggle.com/meowmeowmeowmeowmeow/gtsrb-german-traffic-sign) |
+| RTSD Public | Состоит из нескольких частей, включая "full-frames" -  размеченные кадры с видеорегистратора. Весит около 18 гб. К нему прилогается csv с координатами знаков. Однаков, не все изображения размечены. Ноутбук детектора скачает укороченную версию (около 6 гб, что позволит спокойно использовать ее в Google Colab) этой части датасета, содержащую только размеченные данные; "detection" - датасет для детекции вобще всего, включая края дороги; "classification" - датасет для классификации знаков | [Ссылка](https://disk.yandex.ru/d/TX5k2hkEm9wqZ) <br /> <br /> [Источник ссылки](https://github.com/sqrlfirst/traffic_sign_work) |
+| GTSRB *Recognition* | Немецкий набор знаков, в случае нехватки буду брать отсюда | [Ссылка](https://www.kaggle.com/meowmeowmeowmeowmeow/gtsrb-german-traffic-sign) |
+| GTSDB *Detection* | Аналогично предыдущему | [Ссылка](https://www.kaggle.com/safabouguezzi/german-traffic-sign-detection-benchmark-gtsdb) |
 
 
->Из RTSD собирается pandas.DataFrame, который является входом DataLoader'ов моделей
+
+>Датасеты пакуются в pandas.DataFrame, который является входом DataLoader'ов моделей
 
 
 # Пример работы:
@@ -60,7 +62,6 @@
 ?
 
 ### Детектор примеры
-
-<img style="float: right;" src="./screenshots/detector1.png" width=400>
-
-<img style="float: left;" src="./screenshots/detector2.png" width=400>
+Пример 1 | Пример 2
+:-------------------------:|:-------------------------:
+![alt-text-1](./screenshots/detector1.png) | ![alt-text-2](./screenshots/detector2.png)
