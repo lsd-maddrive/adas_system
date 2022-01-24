@@ -3,6 +3,7 @@ data/*
 !data/*.csv
 !data/reg_videos
 !data/CLASSIFIER
+!data/CLASSIFIER_ON_STOCK
 !data/DETECTOR
 **/*.ipynb_checkpoints/
 */.ipynb_checkpoints/*.ipynb
