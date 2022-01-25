@@ -6,6 +6,9 @@ data/*
 !data/CLASSIFIER_ON_STOCK
 !data/DETECTOR
 !data/YoloV5.pt
+!data/hyp.scratch.yaml
+!data/yolov5s_custom_anchors.yaml
+
 **/*.ipynb_checkpoints/
 */.ipynb_checkpoints/*.ipynb
 **/__pycache__/
