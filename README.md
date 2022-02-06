@@ -40,7 +40,6 @@
 
 # TO DO
 - [x] Softmax confidence для классификатора
-- [ ] Softmax + CrossEntropyLoss doesn't work
 - [x] Метрики по классификатору
 - [x] Рефактор датасетов
 - [ ] Метрики детектора
@@ -67,12 +66,12 @@
 > ### КЛАССИФИКАТОР ОБУЧЕН НА ПАКЕ СТАНДАРТНЫХ ИЗОБРАЖЕНИЙ ЗНАКОВ. Пример:
 Пример 1 | Пример 2
 :-------------------------:|:-------------------------:
-![alt-text-1](./screenshots/classifier_stock_images1.png) | ![alt-text-2](./screenshots/classifier_stock_images2.png)
+![alt-text-1](./SignDetectorAndClassifier/screenshots/classifier_stock_images1.png) | ![alt-text-2](./SignDetectorAndClassifier/screenshots/classifier_stock_images2.png)
 
 Точность на RTSD (содержит не все знаки из стандартного пака) - 67.1%
 
 ### Матрица конволюции:
-![alt-text-1](./screenshots/classifier_confution.png)
+![alt-text-1](./SignDetectorAndClassifier/screenshots/classifier_confution.png)
 
 > 5.19.1 (объединен с 5.19.2) может распозноваться как 1.22
 
@@ -150,7 +149,7 @@
 ## Классификатор примеры
 Пример 1 | Пример 2
 :-------------------------:|:-------------------------:
-![alt-text-1](./screenshots/classifier1.png) | ![alt-text-2](./screenshots/classifier2.png)
+![alt-text-1](./SignDetectorAndClassifier/screenshots/classifier1.png) | ![alt-text-2](./SignDetectorAndClassifier/screenshots/classifier2.png)
 
 >CONF_THRES = 0.8
 > * Зеленым отмечены верно определенные с  уровнем уверенности > CONF_THRES
@@ -163,11 +162,11 @@
 ## Детектор примеры
 Пример 1 | Пример 2
 :-------------------------:|:-------------------------:
-![alt-text-1](./screenshots/detector1.png) | ![alt-text-2](./screenshots/detector2.png)
+![alt-text-1](./SignDetectorAndClassifier/screenshots/detector1.png) | ![alt-text-2](./SignDetectorAndClassifier/screenshots/detector2.png)
 
 ## Детектор+Классификатор примеры
 Пример 1 | Пример 2
 :-------------------------:|:-------------------------:
-![](./screenshots/detector_classifier1.png)  | ![](./screenshots/detector_classifier2.jiff)
+![](./SignDetectorAndClassifier/screenshots/detector_classifier1.png)  | ![](./SignDetectorAndClassifier/screenshots/detector_classifier2.jiff)
 
 > Подписан знак:уверенность классификатора:уверенность детектора.
