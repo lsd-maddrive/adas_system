@@ -1,7 +1,7 @@
 .git/
-!SignDetector&Classifier/data
-SignDetector&Classifier/data/*
-SignDetector&Classifier/data/*/*
+SignDetectorAndClassifier/data
+SignDetectorAndClassifier/data/*
+SignDetectorAndClassifier/data/*/*
 
 **/*.ipynb_checkpoints/
 */.ipynb_checkpoints/*.ipynb
