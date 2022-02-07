@@ -14,6 +14,22 @@
 
 > В репозитории приложены веса к классификатору (data/{CLASSIFIER, CLASSIFIER_ON_STOCK, YoloV5.pt}.
 
+# Зависимости
+**Conda+Python:**
+* *На Windows*
+```bash
+conda create -n adas python=3.6
+pip install -r requirements.txt
+conda install -c pytorch faiss-cpu
+```
+* *На Linux*
+```bash
+conda create -n adas python=3.6
+pip install -r requirements.txt
+conda install -c pytorch faiss-gpu
+```
+> Согласно [источнику](https://github.com/facebookresearch/faiss/blob/main/INSTALL.md#installing-faiss-via-conda), на Windows **faiss-gpu** недоступен. Надо будет найти альтернативу. <br> Кандидаты: setsimilaritysearch, elasticsearch.
+
 # Описание ноутбуков
 * 1.0.ClassifierResearch - классификатор resnet18 для распознования знаков. В ходе обучения сохраняет веса в data/ как промежуточные так и послении. При обучении в Google Colab сохраняет итерации обучения в корень гугл диска.
 * 1_1_Classifier_Issue4 - попытка обучить классификатор на паке стандартных изображений.
