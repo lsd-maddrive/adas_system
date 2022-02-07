@@ -1,13 +1,21 @@
-torchvision==0.9.0+cu111
-torch==1.8.0+cu111
+--find-links https://download.pytorch.org/whl/torch_stable.html
 
-pandas~=1.1.4
-seaborn~=0.11.0
+torch==1.9.0+cu111
+torchvision==0.10.0+cu111
+torchaudio==0.9.0
 
-matplotlib~=3.2.2
-numpy~=1.18.5
-opencv-python~=4.1.2
-Pillow~=7.1.2
-scipy~=1.4.1
+pandas~=1.4.0
+seaborn~=0.11.2
+
+matplotlib~=3.5.1
+numpy~=1.20.3
+opencv-python~=4.5.5.62
+Pillow~=9.0.1
+scipy~=1.8.0
 
 albumentations==1.0.3
+opencv-python-headless==4.5.2.52
+
+pytorch-metric-learning==1.1.0
+
+pre-commit
