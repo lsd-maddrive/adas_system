@@ -30,6 +30,14 @@ conda install -c pytorch faiss-gpu
 ```
 > Согласно [источнику](https://github.com/facebookresearch/faiss/blob/main/INSTALL.md#installing-faiss-via-conda), на Windows **faiss-gpu** недоступен. Надо будет найти альтернативу. <br> Кандидаты: setsimilaritysearch, elasticsearch.
 
+#### Дополнение для браузерных ноутбуков, на случай, если запуск jupyter сервера выполняется из base среды. Добовляет возможность выбрать нужную среду из браузера.
+```bash
+conda install nb_conda_kernels
+```
+> Вкладка Kernel -> Change kernel -> Python [conda evn: X]
+
+
+
 # Описание ноутбуков
 * 1.0.ClassifierResearch - классификатор resnet18 для распознования знаков. В ходе обучения сохраняет веса в data/ как промежуточные так и послении. При обучении в Google Colab сохраняет итерации обучения в корень гугл диска.
 * 1_1_Classifier_Issue4 - попытка обучить классификатор на паке стандартных изображений.
@@ -187,3 +195,8 @@ conda install -c pytorch faiss-gpu
 ![](./SignDetectorAndClassifier/screenshots/detector_classifier1.png)  | ![](./SignDetectorAndClassifier/screenshots/detector_classifier2.jiff)
 
 > Подписан знак:уверенность классификатора:уверенность детектора.
+
+
+# Возможные проблемы
+* Под **Windows** при выполнении из **VSCODE** прерывание выполнения приводит к завершению работы ядра **jupyter**.
+> Использовать веб-версию **jupyter**.
