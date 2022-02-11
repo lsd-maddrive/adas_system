@@ -198,7 +198,7 @@ conda install nb_conda_kernels
 
 # Полезные статьи:
 * [Различные Loss-функции](https://gombru.github.io/2019/04/03/ranking_loss/)
-
+* [Различные Loss-функции и их визуализация](https://towardsdatascience.com/metric-learning-tips-n-tricks-2e4cfee6b75b)
 # Возможные проблемы
 * Под **Windows** при выполнении из **VSCODE** прерывание выполнения приводит к завершению работы ядра **jupyter**.
 > Использовать веб-версию **jupyter**.
