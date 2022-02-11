@@ -4,6 +4,7 @@ SignDetectorAndClassifier/data/*
 SignDetectorAndClassifier/data/*/*
 SignDetectorAndClassifier/notebooks/**
 
+new 1.txt
 **/*.ipynb_checkpoints/
 */.ipynb_checkpoints/*.ipynb
 **/__pycache__/

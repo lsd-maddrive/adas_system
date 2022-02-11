@@ -95,7 +95,7 @@ conda install nb_conda_kernels
 
 Точность на RTSD (содержит не все знаки из стандартного пака) - 67.1%
 
-### Матрица конволюции:
+### Матрица ошибок:
 ![alt-text-1](./SignDetectorAndClassifier/screenshots/classifier_confution.png)
 
 > 5.19.1 (объединен с 5.19.2) может распозноваться как 1.22
