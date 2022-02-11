@@ -1,0 +1,47 @@
+надо ли ресайзить к квадратному изображению?
+можно ли тренить на исходных знаках с аугментацией?
+softmax + crossentropyloss
+fix github repo
+=============================
+-----------yolo folder? arch?
+src: все py файлы
+=============================
+ессть ли подобные видосы?
+
+pattern/feature matching
+https://docs.opencv.org/3.4/dc/dc3/tutorial_py_matcher.html
+
+One-Shot-Learning
+
+в будующем еще прикрутить светофор?
+
+квадратные изображения (letterbox)
+
+скопировать от девелопа и залить в 9_SIGN_DETECTOR
+
+
+
+
+
+!
+СИАМСКАЯ СЕТЬ/One-Shot-Learning
+!
+
+
+C:\ProgramData\Anaconda3\python.exe
+	C:\ProgramData\Anaconda3\cwp.py C:\ProgramData\Anaconda3\envs\adas
+		C:\ProgramData\Anaconda3\envs\adas\python.exe C:\ProgramData\Anaconda3\envs\adas\Scripts\jupyter-notebook-script.py "%USERPROFILE%/"
+
+C:\ProgramData\Anaconda3\python.exe
+	C:\ProgramData\Anaconda3\cwp.py C:\ProgramData\Anaconda3\envs\adas
+		C:\ProgramData\Anaconda3\envs\adas\python.exe
+			C:\ProgramData\Anaconda3\envs\adas\Scripts\jupyter-notebook-script.py  "D:\d_tsw\main_diplom"
+
+
+Вопросы:
+Как и зачем используются batchNorm слои?
+как работает майнер?
+показатель loss для майнера?
+величина margin/loss для триплетов?
+настройки майнера?
+reducer в метрик-лернинг? зачем, что это?
