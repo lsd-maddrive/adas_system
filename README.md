@@ -18,13 +18,13 @@
 **Conda+Python:**
 * *На Windows*
 ```bash
-conda create -n adas python=3.6
+conda create -n adas python=3.7
 pip install -r requirements.txt
 conda install -c pytorch faiss-cpu
 ```
 * *На Linux*
 ```bash
-conda create -n adas python=3.6
+conda create -n adas python=3.7
 pip install -r requirements.txt
 conda install -c pytorch faiss-gpu
 ```
@@ -199,6 +199,7 @@ conda install nb_conda_kernels
 # Полезные статьи:
 * [Различные Loss-функции](https://gombru.github.io/2019/04/03/ranking_loss/)
 * [Различные Loss-функции и их визуализация](https://towardsdatascience.com/metric-learning-tips-n-tricks-2e4cfee6b75b)
+* [NPairLoss vs Triplet vs Tuplet Softmax](https://www.nec-labs.com/uploads/images/Department-Images/MediaAnalytics/papers/nips16_npairmetriclearning.pdf)
 # Возможные проблемы
 * Под **Windows** при выполнении из **VSCODE** прерывание выполнения приводит к завершению работы ядра **jupyter**.
 > Использовать веб-версию **jupyter**.
