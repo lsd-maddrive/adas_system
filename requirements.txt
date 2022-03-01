@@ -20,6 +20,7 @@ albumentations==1.0.3
 opencv-python-headless==4.4.0.42
 pytorch-metric-learning==1.1.0
 tensorboard>=2.4.1
+xlsxwriter
 
 # jupyter kernel
 ipykernel
