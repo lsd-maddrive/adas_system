@@ -3,7 +3,7 @@ SignDetectorAndClassifier/data
 SignDetectorAndClassifier/data/*
 SignDetectorAndClassifier/data/*/*
 SignDetectorAndClassifier/notebooks/**
-
+!SignDetectorAndClassifier/data/*.csv
 new 1.txt
 **/*.ipynb_checkpoints/
 */.ipynb_checkpoints/*.ipynb
