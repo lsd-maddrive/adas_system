@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "maddrive-adas"
-version = "0.1.0"
+version = "0.1.0.dev0"
 description = ""
 authors = ["LSD-Maddrive"]
 license = "MIT"
@@ -14,8 +14,6 @@ readme = 'README.md'
 packages = [
     { include = "maddrive_adas" },
 ]
-
-exclude = ["notebooks"]
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.11"
