@@ -1,4 +1,5 @@
 import numpy as np
+from typing import List
 
 
 class DetectedSign:
@@ -8,7 +9,7 @@ class DetectedSign:
     We define one point of signs retectino contract for communication
     """
 
-    def __init__(self, bbox: list[float]) -> None:
+    def __init__(self, bbox: List[float]) -> None:
         self._bbox = np.array(bbox, dtype=np.float32)
 
     def as_dict(self) -> dict:
@@ -23,5 +24,5 @@ class BaseSignsDetector:
         predictions = self.detect_batch([img])
         return predictions[0]
 
-    def detect_batch(self, imgs: list[np.array]) -> list[dict]:
+    def detect_batch(self, imgs: List[np.array]) -> List[dict]:
         raise NotImplementedError()
