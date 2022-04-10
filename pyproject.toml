@@ -43,6 +43,10 @@ pytest = "^7.1.1"
 black = "^22.3.0"
 pyproject-flake8 = "^0.0.1-alpha.3"
 
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
 [tool.black]
 # https://github.com/psf/black
 target-version = ["py38"]
