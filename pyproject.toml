@@ -11,6 +11,9 @@ classifiers = [
 ]
 
 readme = 'README.md'
+packages = [
+    { include = "maddrive_adas" },
+]
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.11"
