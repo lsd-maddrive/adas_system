@@ -5,3 +5,6 @@
 *.jpg filter=lfs diff=lfs merge=lfs -text
 *.jpeg filter=lfs diff=lfs merge=lfs -text
 *.csv filter=lfs diff=lfs merge=lfs -text
+
+*.ipynb	diff=jupyternotebook
+*.ipynb	merge=jupyternotebook
