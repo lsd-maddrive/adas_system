@@ -14,6 +14,30 @@
 
 > В репозитории приложены веса к классификатору (data/{CLASSIFIER, CLASSIFIER_ON_STOCK, YoloV5.pt}.
 
+# Зависимости
+**Conda+Python:**
+* *На Windows*
+```bash
+conda create -n adas python=3.7
+pip install -r requirements.txt
+conda install -c pytorch faiss-cpu
+```
+* *На Linux*
+```bash
+conda create -n adas python=3.7
+pip install -r requirements.txt
+conda install -c pytorch faiss-gpu
+```
+> Согласно [источнику](https://github.com/facebookresearch/faiss/blob/main/INSTALL.md#installing-faiss-via-conda), на Windows **faiss-gpu** недоступен. Надо будет найти альтернативу. <br> Кандидаты: setsimilaritysearch, elasticsearch.
+
+#### Дополнение для браузерных ноутбуков, на случай, если запуск jupyter сервера выполняется из base среды. Добовляет возможность выбрать нужную среду из браузера.
+```bash
+conda install nb_conda_kernels
+```
+> Вкладка Kernel -> Change kernel -> Python [conda evn: X]
+
+
+
 # Описание ноутбуков
 * 1.0.ClassifierResearch - классификатор resnet18 для распознования знаков. В ходе обучения сохраняет веса в data/ как промежуточные так и послении. При обучении в Google Colab сохраняет итерации обучения в корень гугл диска.
 * 1_1_Classifier_Issue4 - попытка обучить классификатор на паке стандартных изображений.
@@ -55,6 +79,7 @@
 | RTSD Public | Состоит из нескольких частей, включая "full-frames" -  размеченные кадры с видеорегистратора. Весит около 18 гб. К нему прилогается csv с координатами знаков. Однаков, не все изображения размечены. Ноутбук детектора скачает укороченную версию (около 6 гб, что позволит спокойно использовать ее в Google Colab) этой части датасета, содержащую только размеченные данные; "detection" - датасет для детекции вобще всего, включая края дороги; "classification" - датасет для классификации знаков | [Ссылка](https://disk.yandex.ru/d/TX5k2hkEm9wqZ) <br /> <br /> [Источник ссылки](https://github.com/sqrlfirst/traffic_sign_work) |
 | GTSRB *Recognition* | Немецкий набор знаков, в случае нехватки буду брать отсюда | [Ссылка](https://www.kaggle.com/meowmeowmeowmeowmeow/gtsrb-german-traffic-sign) |
 | GTSDB *Detection* | Аналогично предыдущему | [Ссылка](https://www.kaggle.com/safabouguezzi/german-traffic-sign-detection-benchmark-gtsdb) |
+|BelgiumTS| Много гигабайт знаков, непонятная структура файликов :( <br> Часть знаков значительно отличаются от российских. Требуется повнимательнее рассмотреть датасет | [Ссылка](https://btsd.ethz.ch/shareddata/)|
 
 
 
@@ -70,7 +95,7 @@
 
 Точность на RTSD (содержит не все знаки из стандартного пака) - 67.1%
 
-### Матрица конволюции:
+### Матрица ошибок:
 ![alt-text-1](./SignDetectorAndClassifier/screenshots/classifier_confution.png)
 
 > 5.19.1 (объединен с 5.19.2) может распозноваться как 1.22
@@ -170,3 +195,11 @@
 ![](./SignDetectorAndClassifier/screenshots/detector_classifier1.png)  | ![](./SignDetectorAndClassifier/screenshots/detector_classifier2.jiff)
 
 > Подписан знак:уверенность классификатора:уверенность детектора.
+
+# Полезные статьи:
+* [Различные Loss-функции](https://gombru.github.io/2019/04/03/ranking_loss/)
+* [Различные Loss-функции и их визуализация](https://towardsdatascience.com/metric-learning-tips-n-tricks-2e4cfee6b75b)
+* [NPairLoss vs Triplet vs Tuplet Softmax](https://www.nec-labs.com/uploads/images/Department-Images/MediaAnalytics/papers/nips16_npairmetriclearning.pdf)
+# Возможные проблемы
+* Под **Windows** при выполнении из **VSCODE** прерывание выполнения приводит к завершению работы ядра **jupyter**.
+> Использовать веб-версию **jupyter**.

@@ -1,13 +1,18 @@
 .git/
-SignDetectorAndClassifier/data
+!SignDetectorAndClassifier/data
 SignDetectorAndClassifier/data/*
 SignDetectorAndClassifier/data/*/*
+SignDetectorAndClassifier/notebooks/**
 
+!SignDetectorAndClassifier/data/**.csv
+
+new 1.txt
 **/*.ipynb_checkpoints/
 */.ipynb_checkpoints/*.ipynb
 **/__pycache__/
 
-notebooks/*.pt
+!SignDetectorAndClassifier/notebooks/*.ipynb
+
 !notebooks/YoloV5Last.pt
 !notebooks/nt_helper/*
 # Byte-compiled / optimized / DLL files
