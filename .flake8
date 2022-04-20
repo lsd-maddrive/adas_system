@@ -4,3 +4,7 @@ ignore =
     # whitespace before ':'
     E203
 max-complexity = 10
+
+exclude =
+    # YOLO src and utils
+    maddrive_adas/src/*
