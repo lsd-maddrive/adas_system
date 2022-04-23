@@ -17,6 +17,8 @@ class DetectedSign:
 
 
 class BaseSignsDetector:
+    """Base Detector."""
+
     def __init__(self) -> None:
         pass
 
@@ -25,4 +27,14 @@ class BaseSignsDetector:
         return predictions[0]
 
     def detect_batch(self, imgs: List[np.array]) -> List[dict]:
+        raise NotImplementedError()
+
+
+class BaseSignsClassifier:
+    """Base Calssifier."""
+
+    def __init__(self) -> None:
+        pass
+
+    def classify(self, imgs: List[np.array]) -> List[np.array]:
         raise NotImplementedError()
