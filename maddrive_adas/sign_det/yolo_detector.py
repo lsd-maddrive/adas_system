@@ -5,15 +5,18 @@ import numpy as np
 import sys
 import os
 
-from classifier import EncoderBasedClassifier, NonEncoderBasedClassifier
-from detector import YoloV5Detector
-
-from base import BaseSignsClassifier, DetectedSign, BaseSignsDetector
-from src.utils.logger import logger
-
 # TODO
 # append maddrive_adas
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+from classifier import EncoderBasedClassifier, NonEncoderBasedClassifier
+from detector import YoloV5Detector
+
+from base import BaseSignsClassifier, BaseSignsDetector
+from src.utils.logger import logger
+from src.utils.fs import imread_rgb
+
+
 # append src as root
 # sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'src'))
 
@@ -83,9 +86,16 @@ class YoloSignsDetector(BaseSignsDetector):
     def detect_batch(self, imgs: List[np.array]) -> List[dict]:
         # Sample code
         # TODO - replace for real one
-        predictions = [DetectedSign(bbox=[0, 10, 0, 10])]
+        # predictions = [DetectedSign(bbox=[0, 10, 0, 10])]
+        res_list = []
+        for img in imgs:
+            detection_res = self._detector.detect(img)
+            # classifier_res = self._classifier.classify(img)
+            res_list.append(detection_res)
 
-        return [ds.as_dict() for ds in predictions]
+        return res_list
+        # TODO restore
+        # return [ds.as_dict() for ds in predictions]
 
 
 def test():
@@ -101,6 +111,10 @@ def test():
         class_count=512,
         not_encoder_based_classifier=False
     )
+
+    img = imread_rgb('"D:\\d_tsw\\main_diplom\\tests\\test_data\\test_image.png"')
+    res = model.detect(img)
+    return res
 
 
 if __name__ == '__main__':

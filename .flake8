@@ -3,6 +3,8 @@ max-line-length = 100
 ignore =
     # whitespace before ':'
     E203
+    # module level import not at top of file
+    E402
 max-complexity = 10
 
 exclude =
