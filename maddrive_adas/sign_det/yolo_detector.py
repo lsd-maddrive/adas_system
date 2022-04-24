@@ -1,13 +1,16 @@
 from typing import List
 
-import numpy as np
-
 import sys
 import os
+import torch
+
+import numpy as np
 
 # TODO
 # append maddrive_adas
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+# append src as root
+sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'src'))
 
 from classifier import EncoderBasedClassifier, NonEncoderBasedClassifier
 from detector import YoloV5Detector
@@ -17,16 +20,11 @@ from src.utils.logger import logger
 from src.utils.fs import imread_rgb
 
 
-# append src as root
-# sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'src'))
-
-
 class YoloSignsDetector(BaseSignsDetector):
     """Signs  detector base on YOLO"""
 
     def __init__(self) -> None:
 
-        import torch
         self._device = torch.device(
             'cuda' if torch.cuda.is_available() else 'cpu'
         )
@@ -41,8 +39,15 @@ class YoloSignsDetector(BaseSignsDetector):
         path_to_yolo_weights: str,
         path_to_classifier_weights: str,
         class_count: int,
-        not_encoder_based_classifier: bool = True
+        not_encoder_based_classifier: bool = True,
+        device: torch.device = None
     ) -> bool:
+
+        if device:
+            logger.info(
+                f'{__name__} Initialize. Overriding device -> {device.type}'
+            )
+            self._device = device
 
         try:
             if not_encoder_based_classifier:
@@ -58,7 +63,7 @@ class YoloSignsDetector(BaseSignsDetector):
 
             # TODO
             # FIX HARDCODED img_size, use_half
-            self._detector = YoloV5Detector(
+            self._detector: YoloV5Detector = YoloV5Detector(
                 path_to_cfg=path_to_yolo_cfg,
                 path_to_weights=path_to_yolo_weights,
                 device=self._device,
@@ -87,13 +92,10 @@ class YoloSignsDetector(BaseSignsDetector):
         # Sample code
         # TODO - replace for real one
         # predictions = [DetectedSign(bbox=[0, 10, 0, 10])]
-        res_list = []
-        for img in imgs:
-            detection_res = self._detector.detect(img)
-            # classifier_res = self._classifier.classify(img)
-            res_list.append(detection_res)
 
-        return res_list
+        detection_res = self._detector.detect_batch(imgs)
+
+        return detection_res
         # TODO restore
         # return [ds.as_dict() for ds in predictions]
 
@@ -102,8 +104,9 @@ def test():
     model = YoloSignsDetector()
     path_prefix = os.path.dirname(__file__) + '\\'
     model.initialize(
-        path_to_yolo_cfg=path_prefix + 'yolov5l_model_config.yaml',
-        path_to_yolo_weights=path_prefix + 'YoloV5L_weights.pt',
+        path_to_yolo_cfg=path_prefix + 'yolov5L_custom_anchors.yaml',
+        path_to_yolo_weights="D:\\d_tsw\\main_diplom\\SignDetectorAndClassifier\\data\\YoloV5L.pt",
+        # path_to_yolo_weights=path_prefix + 'YoloV5L_weights.pt',
         # path_to_classifier_weights=path_prefix + 'resnet_CLASSIFIER_ON_STOCK',
         # class_count=57,
         # not_encoder_based_classifier=True
@@ -112,8 +115,11 @@ def test():
         not_encoder_based_classifier=False
     )
 
-    img = imread_rgb('"D:\\d_tsw\\main_diplom\\tests\\test_data\\test_image.png"')
-    res = model.detect(img)
+    img = imread_rgb('D:\\d_tsw\\main_diplom\\tests\\test_data\\custom_test.png')
+    img1 = imread_rgb('D:\\d_tsw\\main_diplom\\tests\\test_data\\test_image.png')
+    res = model.detect_batch(
+        [img, img1]
+    )
     return res
 
 
