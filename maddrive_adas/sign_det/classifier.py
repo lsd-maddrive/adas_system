@@ -45,3 +45,14 @@ class NonEncoderBasedClassifier(BaseSignsClassifier):
 
         self._model.load_state_dict(torch.load(path_to_weights))
         self._model.to(device)
+
+
+def test():
+    c = NonEncoderBasedClassifier(
+        path_to_weights=''
+    )
+    return c
+
+
+if __name__ == "__main__":
+    test()

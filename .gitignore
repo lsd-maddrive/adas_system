@@ -1,4 +1,5 @@
 .git/
+/notebooks/SignDetectorAndClassifier/data
 !SignDetectorAndClassifier/data
 SignDetectorAndClassifier/data/*
 SignDetectorAndClassifier/data/*/*
