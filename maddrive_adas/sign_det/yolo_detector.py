@@ -102,10 +102,10 @@ class YoloSignsDetector(BaseSignsDetector):
 
 def test():
     model = YoloSignsDetector()
-    path_prefix = os.path.dirname(__file__) + '\\'
+    path_prefix = os.path.dirname(__file__) + '/'
     model.initialize(
         path_to_yolo_cfg=path_prefix + 'yolov5L_custom_anchors.yaml',
-        path_to_yolo_weights="D:\\d_tsw\\main_diplom\\SignDetectorAndClassifier\\data\\YoloV5L.pt",
+        path_to_yolo_weights="D:/d_tsw/main_diplom/SignDetectorAndClassifier/data/YoloV5L.pt",
         # path_to_yolo_weights=path_prefix + 'YoloV5L_weights.pt',
         # path_to_classifier_weights=path_prefix + 'resnet_CLASSIFIER_ON_STOCK',
         # class_count=57,
@@ -115,8 +115,8 @@ def test():
         not_encoder_based_classifier=False
     )
 
-    img = imread_rgb('D:\\d_tsw\\main_diplom\\tests\\test_data\\custom_test.png')
-    img1 = imread_rgb('D:\\d_tsw\\main_diplom\\tests\\test_data\\test_image.png')
+    img = imread_rgb('../../tests/test_data/custom_test.png')
+    img1 = imread_rgb('../../tests/test_data/test_image.png')
     res = model.detect_batch(
         [img, img1]
     )
