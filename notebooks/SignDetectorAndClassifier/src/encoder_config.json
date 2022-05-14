@@ -1,0 +1,6 @@
+{
+	"base": "resnet18",
+	"output_len": 512,
+	"input_image_size": 40,
+	"bias": false
+}
