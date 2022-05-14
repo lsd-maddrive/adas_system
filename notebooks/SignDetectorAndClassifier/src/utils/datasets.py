@@ -1411,3 +1411,14 @@ class SignDataset(torch.utils.data.Dataset):
 
         img = img / 255
         return img, label, (path, sign)
+
+from torch.utils.data import DataLoader
+def get_dataloader_from_dataset(dataset, shuffle=False, drop_last=True, batch_size=-1, num_workers=-1):
+    return DataLoader(
+        dataset,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        pin_memory=True,
+        shuffle=shuffle,
+        drop_last=drop_last
+    )
