@@ -1,3 +1,4 @@
+./notebooks/SignDetectorAndClassifier/notebook/runs/*
 .venv/
 .git/
 /notebooks/SignDetectorAndClassifier/data
