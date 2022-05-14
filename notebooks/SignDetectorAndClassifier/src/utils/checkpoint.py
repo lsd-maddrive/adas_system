@@ -1,14 +1,14 @@
 import torch
 import os
-def saveCheckpoint(model, scheduler, optimizer, epoch, filename):
+def save_checkpoint(model, scheduler, optimizer, epoch, filename):
     torch.save({
-        'epoch': epoch if epoch else None,
+        'epoch': epoch if not epoch is None else None,
         'model': model.state_dict() if model else None,
         'optimizer': optimizer.state_dict() if optimizer else None,
         'scheduler': scheduler.state_dict() if scheduler else None
     }, filename)
 
-def loadCheckpoint(model, scheduler, optimizer, filename):
+def load_checkpoint(model, scheduler, optimizer, filename):
     print(f'Loading checkpoint from {os.path.abspath(filename)}')
     checkpoint = torch.load(filename)
     if checkpoint['model']:
@@ -27,7 +27,7 @@ def loadCheckpoint(model, scheduler, optimizer, filename):
     else:
         print('[!] Scheduler was not loaded!')
 
-    if checkpoint['epoch']:
+    if not checkpoint['epoch'] is None:
         epoch = checkpoint['epoch']
     else:
         print('[!] No info about epochs!')
