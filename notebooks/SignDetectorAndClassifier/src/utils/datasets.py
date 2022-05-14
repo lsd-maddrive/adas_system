@@ -1370,3 +1370,44 @@ def dataset_stats(
     if verbose:
         print(json.dumps(stats, indent=2, sort_keys=False))
     return stats
+
+
+########################### CUSTOM PART
+import pandas as pd
+from utils.fs import imread_rgb
+class SignDataset(torch.utils.data.Dataset):
+    def __init__(self, df: pd.DataFrame, set_label=None, hyp=None, transform=None, alpha_color=None):
+        self.transform = transform
+        self.df = df[df['set'] == set_label] if set_label else df
+        self.hyp = hyp
+        self.alpha_color = alpha_color
+
+    def __len__(self):
+        return len(self.df.index)
+
+    def __getitem__(self, index):
+        row = self.df.iloc[index]
+        label = int(row['encoded'])
+        path = str(row['filepath'])
+        sign = str(row['sign'])
+        img = imread_rgb(path)
+
+        # check does it contains transparent channel
+        if img.shape[2] == 4:
+            # randomize transparent
+            trans_mask = img[:, :, 3] == 0
+            img[trans_mask] = [self.alpha_color if self.alpha_color else random.randrange(0, 256),
+                               self.alpha_color if self.alpha_color else random.randrange(0, 256),
+                               self.alpha_color if self.alpha_color else random.randrange(0, 256),
+                               255]
+
+            img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+        # /randomize transparent
+
+        # augment
+        if self.transform:
+            img = self.transform(image=img)['image']
+        # /augment
+
+        img = img / 255
+        return img, label, (path, sign)
