@@ -1392,18 +1392,6 @@ class SignDataset(torch.utils.data.Dataset):
         sign = str(row['sign'])
         img = imread_rgb(path)
 
-        # check does it contains transparent channel
-        if img.shape[2] == 4:
-            # randomize transparent
-            trans_mask = img[:, :, 3] == 0
-            img[trans_mask] = [self.alpha_color if self.alpha_color else random.randrange(0, 256),
-                               self.alpha_color if self.alpha_color else random.randrange(0, 256),
-                               self.alpha_color if self.alpha_color else random.randrange(0, 256),
-                               255]
-
-            img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
-        # /randomize transparent
-
         # augment
         if self.transform:
             img = self.transform(image=img)['image']
