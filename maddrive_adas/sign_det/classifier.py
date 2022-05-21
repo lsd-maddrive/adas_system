@@ -23,7 +23,7 @@ class NonEncoderBasedClassifier(BaseSignsClassifier):
         device: torch.device,
 
     ):
-
+        self._device = device
         self._model: nn.Module
         self._model, self._img_size = get_model_and_img_size(
             path_to_config=path_to_model_config
@@ -33,7 +33,7 @@ class NonEncoderBasedClassifier(BaseSignsClassifier):
         self._transform, _ = get_minimal_and_augment_transforms(
             self._img_size
         )
-        self._model, _, _, _, _ = load_checkpoint(
+        self._model, _, _, _ = load_checkpoint(
             self._model,
             None,
             None,
@@ -44,13 +44,18 @@ class NonEncoderBasedClassifier(BaseSignsClassifier):
             _centroid_location_dict: dict = \
                 {k: torch.Tensor(v) for k, v in _centroid_location.items()}
 
-        self._idx_to_key: list = {idx: v for idx, v in _centroid_location_dict.items()}
-        self._centroid_location: torch.Tensor = _centroid_location_dict.values()
+        self._idx_to_key: list = {idx: k for idx, k in enumerate(_centroid_location_dict.keys())}
+        self._centroid_location: torch.Tensor = torch.stack(
+            list(_centroid_location_dict.values())
+        ).to(self._device)
 
     # maybe ret list[tuple(SIGN, CONFIDENCE: float)] ?
     def classify(self, imgs: List[np.array]) -> List[np.array]:
         res = []
-        res = self._model(imgs)
+        imgs = [x / 255 for x in imgs]
+        transformed_imgs = torch.stack([self._transform(image=img)['image'] for img in imgs])
+        transformed_imgs = transformed_imgs.to(self._device, dtype=torch.float32)
+        res = self._model(transformed_imgs)
         res1 = self._get_nearest_centroids(res)
         return res1
 
@@ -63,15 +68,19 @@ class NonEncoderBasedClassifier(BaseSignsClassifier):
 def test():
     device = torch.device('cuda:0')
     c = NonEncoderBasedClassifier(
-        path_to_weights='EXCLUDE_ADDI_SIGNSencoder_loss_1e-05_acc_0.99566epoch_99.encoder',
+        path_to_weights='EXCLUDE_ADDI_SIGNSencoder_loss_1e'
+        '-05_acc_0.99566epoch_99.encoder',
         path_to_model_config='encoder_config.json',
         path_to_centroid_location='centroid_location.txt',
         device=device
     )
 
-    imread_rgb()
+    img = imread_rgb(
+        "D:\\d_tsw\\main_diplom\\SignDetectorAndClassifier\\data\\additional_sign\\2.4_1.png"
+    )
+    sign = c.classify([img])
 
-    return c
+    return sign
 
 
 if __name__ == "__main__":

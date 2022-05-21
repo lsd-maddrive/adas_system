@@ -1,6 +1,6 @@
 import cv2
 
-from utils.logger import logger
+from .logger import logger
 
 def imread_rgb(fpath):
     img = cv2.imread(fpath, cv2.IMREAD_COLOR)
