@@ -12,10 +12,16 @@ def get_model_and_img_size(path_to_config: str):
     model_data = get_model_config(path_to_config)
     model = getattr(
         importlib.import_module('torchvision.models'),
-        f'{model_data["base"]}')()
-    model.fc = nn.Linear(
-        in_features=model.fc.in_features,
-        out_features=model_data['output_len'],
-        bias=model_data['bias'])
+        f'{model_data["base"]}')(pretrained=True)
+    if 'efficientnet' in model_data["base"]:
+        model.classifier[1] = nn.Linear(
+            in_features=model.classifier[1].in_features,
+            out_features=model_data['output_len'],
+            bias=model_data['bias'])
+    elif 'resnet' in model_data["base"]:
+        model.fc = nn.Linear(
+            in_features=model.fc.in_features,
+            out_features=model_data['output_len'],
+            bias=model_data['bias'])
     img_size = model_data['input_image_size']
     return model, img_size
