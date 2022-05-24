@@ -14,7 +14,7 @@ from src.utils.transforms import get_minimal_and_augment_transforms
 # move constructor to BaseSignsClassifier class aka super init
 
 
-class NonEncoderBasedClassifier(BaseSignsClassifier):
+class EncoderBasedClassifier(BaseSignsClassifier):
 
     def __init__(
         self,
@@ -75,7 +75,7 @@ class NonEncoderBasedClassifier(BaseSignsClassifier):
 
 def test():
     device = torch.device('cuda:0')
-    c = NonEncoderBasedClassifier(
+    c = EncoderBasedClassifier(
         path_to_weights='EXCLUDE_ADDI_SIGNSencoder_loss_1e'
         '-05_acc_0.99566epoch_99.encoder',
         path_to_model_config='encoder_config.json',

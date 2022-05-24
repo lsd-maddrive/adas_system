@@ -9,7 +9,7 @@ import numpy as np
 # append src as root
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
-from classifier import NonEncoderBasedClassifier
+from classifier import EncoderBasedClassifier
 from detector import YoloV5Detector
 
 from base import BaseSignsClassifier, BaseSignsDetector
@@ -48,7 +48,7 @@ class YoloSignsDetector(BaseSignsDetector):
 
         try:
             if not_encoder_based_classifier:
-                self._classifier = NonEncoderBasedClassifier(
+                self._classifier = EncoderBasedClassifier(
                     path_to_classifier_weights,
                     path_to_model_config=kwargs['path_to_model_config'],
                     path_to_centroid_location=kwargs['path_to_centroid_location'],
