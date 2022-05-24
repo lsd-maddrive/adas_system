@@ -85,7 +85,7 @@ class YoloSignsDetector(BaseSignsDetector):
         return False
 
     def detect_batch(self, imgs: List[np.array]) -> List[dict]:
-        DEBUG = True
+        DEBUG = False
         if DEBUG:
             import cv2
 
@@ -97,8 +97,9 @@ class YoloSignsDetector(BaseSignsDetector):
 
             if DEBUG:
                 for img, sign in zip(detection_per_single_img, classification_res):
-                    cv2.imshow(sign[0], img)
-                    cv2.waitKey()
+                    img_ = cv2.resize(img, (200, 200), interpolation=cv2.INTER_AREA)
+                    cv2.imshow(sign[0], img_)
+                cv2.waitKey()
         return classification_res
 
 
