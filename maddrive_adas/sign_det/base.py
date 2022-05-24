@@ -1,5 +1,5 @@
 import numpy as np
-from typing import List
+from typing import List, Tuple
 
 
 class DetectedSign:
@@ -32,9 +32,9 @@ class BaseSignsDetector:
 
 class BaseSignsClassifier:
     """Base Calssifier."""
-
+# TODO: fix constructor
     def __init__(self) -> None:
         pass
 
-    def classify(self, imgs: List[np.array]) -> List[np.array]:
+    def classify(self, imgs: List[np.array]) -> List[Tuple[str, float]]:
         raise NotImplementedError()
