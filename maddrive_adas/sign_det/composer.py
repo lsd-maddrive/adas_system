@@ -36,14 +36,14 @@ class YoloSignsDetector():
         if DEBUG:
             import cv2
 
-        detection_res = self._detector.detect_batch(imgs)
+        detection_res: list[dict[str, list]] = self._detector.detect_batch(imgs)
         classification_res_list = []
-        for detection_per_single_img in detection_res:
-            classification_res = self._classifier.classify(detection_per_single_img)
+        for detection in detection_res:
+            classification_res = self._classifier.classify_batch()  # detection)
             classification_res_list.append(classification_res)
 
             if DEBUG:
-                for img, sign in zip(detection_per_single_img, classification_res):
+                for img, sign in zip(detection, classification_res):
                     img_ = cv2.resize(img, (200, 200), interpolation=cv2.INTER_AREA)
                     cv2.imshow(sign[0], img_)
                 cv2.waitKey()

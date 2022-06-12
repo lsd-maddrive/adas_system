@@ -10,11 +10,9 @@ from src.utils.augmentations import letterbox
 from src.utils.fs import imread_rgb
 
 DETECT_INFO_PROTO = {
-    "coords": [],
-    "relative_coords": [],
-    "class": [],
-    "confs": [],
-    "count": 0,
+    'relative_coords': [],
+    'confs': [],
+    'coords': []
 }
 
 REQUIRED_ARCHIVE_KEYS = ['model', 'input_image_size', 'model_config']
@@ -76,7 +74,7 @@ class YoloV5Detector(AbstatractSignDetector):
         frame = frame[None, ...]    # add 4 dim
         return frame
 
-    # TODO: hardcoded args
+    # TODO: hardcoded args, move it to model config archive-dict
     @staticmethod
     def translatePreds(
         pred,
@@ -104,22 +102,24 @@ class YoloV5Detector(AbstatractSignDetector):
 
         ret_list: list = []
 
-        # TODO:
-        # make it parrallel aka multithreaded
         for i, det in enumerate(pred):
             detect_info = copy.deepcopy(DETECT_INFO_PROTO)
             if len(det):
-                detect_info["relative_coords"].append(det[:, :4])
+                current_img_size = source_img_size[i]
                 det[:, :4] = scale_coords(
-                    nn_img_size, det[:, :4], source_img_size[i]
+                    nn_img_size, det[:, :4], current_img_size
                 ).round()
-
-                for *xyxy, conf, cls in reversed(det):
-                    detect_info["coords"].append(list(map(int, xyxy)))
-                    detect_info["confs"].append(float(conf))
-                    detect_info["class"].append(int(cls))
-
-                    detect_info["count"] += 1
+                for det_instance in det:
+                    det_instance_f = det_instance[:4].float()
+                    detect_info['coords'].append(
+                        list(map(int, det_instance_f)))
+                    detect_info['relative_coords'].append(list(map(float, [
+                        det_instance_f[0] / current_img_size[1],
+                        det_instance_f[1] / current_img_size[0],
+                        det_instance_f[2] / current_img_size[1],
+                        det_instance_f[3] / current_img_size[0],
+                    ])))
+                detect_info['confs'].append(list(map(float, det[:, 4])))
 
             ret_list.append(detect_info)
 
@@ -151,30 +151,15 @@ class YoloV5Detector(AbstatractSignDetector):
         preds = self._model(batch)[0]   # why 0? models.common:398 DetectMultiBackend
         # i realy dont know what model output contains besides coords
 
-        data = self.translatePreds(
+        data = YoloV5Detector.translatePreds(
             preds,
             self._img_size,  # scaled img for model
             original_img_size,  #
             # TODO: cardcoded arg
-            conf_thres=0.101,
+            conf_thres=0.11,
             max_det=10)
 
-        # data stores list (dict of detected signs) per imgs
-
-        ret_list: list = []
-
-        for idx, img_data in enumerate(data):
-            per_image: list = []
-            for i in range(img_data['count']):
-                cropped = imgs[idx][
-                    img_data['coords'][i][1]: img_data['coords'][i][3],
-                    img_data['coords'][i][0]: img_data['coords'][i][2]
-                ]
-                per_image.append(cropped)
-
-            ret_list.append(per_image)
-
-        return ret_list
+        return data
 
     def detect(self, img: np.array) -> list[tuple[float, float, float, float]]:
         """Detect sign on img.
@@ -185,7 +170,7 @@ class YoloV5Detector(AbstatractSignDetector):
         Returns:
             list[tuple[float, float, float, float]]: List of relative sign coordinates.
         """
-        return self.detect_batch([img])
+        return self.detect_batch([img])[0]
 
 
 def test():
@@ -199,6 +184,7 @@ def test():
     img2 = imread_rgb(DATA_DIR / 'test_image.png')
 
     sign = c.detect_batch([img1, img2])
+    # sign = c.detect(img2)
 
     return sign
 

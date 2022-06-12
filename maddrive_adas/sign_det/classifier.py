@@ -58,11 +58,31 @@ class EncoderBasedClassifier(AbstractSignClassifier):
         ).to(self._device)
 
     @torch.no_grad()
-    def classify(self, imgs: list[np.array]) -> list[tuple[str, float]]:
-        imgs = [x / 255 for x in imgs]
+    def classify_batch(
+        self,
+        imgs: list[np.array],
+        relative_sign_pos: list[list[float]]
+    ) -> list[tuple[str, float]]:
+
+        # 1. to float
+        imgs_float = [x / 255 for x in imgs]
+        # 2. crop img and make array from it
+        imgs: list[np.array] = []
+        for idx, img in enumerate(imgs_float):
+            for sign_pos in relative_sign_pos[idx]:
+                w, h, *_ = img.shape
+                imgs.append(
+                    img[
+                        int(sign_pos[0] * w): int(sign_pos[1] * w),
+                        int(sign_pos[0] * h): int(sign_pos[1] * h),
+                    ],
+                )
+        # 3. pass it to model
         transformed_imgs = torch.stack([self._transform(image=img)['image'] for img in imgs])
         transformed_imgs = transformed_imgs.to(self._device, dtype=torch.float32)
         model_pred = self._model(transformed_imgs)
+
+        # 4. get nearest
         return self._get_nearest_centroids(model_pred)
 
     def _get_nearest_centroids(self, embs) -> list[str]:
@@ -93,7 +113,10 @@ def test():
     img2 = imread_rgb(DATA_DIR / 'additional_sign' / '1.31_1.png')
     img3 = imread_rgb(DATA_DIR / 'additional_sign' / '3.24.100_3.png')
 
-    sign = c.classify([img1, img2, img3])
+    sign = c.classify_batch(
+        [img1, img2, img3],
+        [[[0., 1., 0., 1.]] for _ in range(3)]
+    )
 
     return sign
 
