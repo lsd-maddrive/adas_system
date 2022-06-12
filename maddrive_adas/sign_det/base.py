@@ -16,11 +16,12 @@ class DetectedSign:
         return {"bbox": self._bbox.tolist()}
 
 
-class BaseSignsDetector:
-    """Base Detector."""
+class AbstatractSignsDetector:
+    """Base Detector.
+    """
 
     def __init__(self) -> None:
-        pass
+        raise NotImplementedError()
 
     def detect(self, img: np.array) -> dict:
         predictions = self.detect_batch([img])
@@ -30,11 +31,12 @@ class BaseSignsDetector:
         raise NotImplementedError()
 
 
-class BaseSignsClassifier:
-    """Base Calssifier."""
-# TODO: fix constructor
+class AbstractSignsClassifier:
+    """Base Calssifier.
+    """
+
     def __init__(self) -> None:
-        pass
+        raise NotImplementedError()
 
     def classify(self, imgs: List[np.array]) -> List[Tuple[str, float]]:
         raise NotImplementedError()

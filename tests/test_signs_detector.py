@@ -2,7 +2,10 @@ import os
 import pytest
 import numpy as np
 
-from maddrive_adas.sign_det.yolo_detector import YoloSignsDetector
+import sys
+sys.path.append('.')
+
+from maddrive_adas.sign_det.composer import YoloSignsDetector
 from maddrive_adas.sign_det.src.utils import fs
 
 

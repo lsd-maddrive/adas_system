@@ -1,7 +1,7 @@
 import numpy as np
 from typing import List, Tuple
 
-from base import BaseSignsClassifier
+from base import AbstractSignsClassifier
 
 import json
 import torch
@@ -10,39 +10,45 @@ from src.utils.models import get_model_and_img_size
 from src.utils.fs import imread_rgb
 from src.utils.checkpoint import load_checkpoint
 from src.utils.transforms import get_minimal_and_augment_transforms
+
 # TODO:
 # move constructor to BaseSignsClassifier class aka super init
 
 
-class EncoderBasedClassifier(BaseSignsClassifier):
+class EncoderBasedClassifier(AbstractSignsClassifier):
+    """Encoder Bassed Classifier.
+
+    Args:
+        BaseSignsClassifier (AbstractClassifier): Abstract Classifier.
+    """
 
     def __init__(
-        self,
-        path_to_weights: str,
-        path_to_model_config: str,
-        path_to_centroid_location: str,
-        device: torch.device,
+        self, path_to_model_archive: str, path_to_centroid_location: str = "",
     ):
-        self._device = device
+        """EncoderBasedClassifier Constructor.
+
+        Args:
+            path_to_model_archive (str): Path to model archive, which contains:
+
+                - model config json - config;
+                - model weights - model;
+                - centroid locations - centrod;
+            path_to_centroid_location (str, optional): Pass json centroid location for overwriting 
+            centroids from model archive. Defaults to ''.
+        """
+        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self._model: nn.Module
-        self._model, self._img_size = get_model_and_img_size(
-            path_to_config=path_to_model_config
-        )
+        self._model, self._img_size = get_model_and_img_size(path_to_config=path_to_model_config)
         self._model.to(device)
 
-        self._transform, _ = get_minimal_and_augment_transforms(
-            self._img_size
-        )
-        self._model, _, _, _ = load_checkpoint(
-            self._model,
-            None,
-            None,
-            path_to_weights)
+        self._transform, _ = get_minimal_and_augment_transforms(self._img_size)
+        self._model, _, _, _ = load_checkpoint(self._model, None, None, path_to_weights)
 
-        with open(path_to_centroid_location, 'r') as f:
+        with open(path_to_centroid_location, "r") as f:
             _centroid_location: dict = json.load(f)
-            _centroid_location_dict: dict = \
-                {k: torch.Tensor(v) for k, v in _centroid_location.items()}
+            _centroid_location_dict: dict = {
+                k: torch.Tensor(v) for k, v in _centroid_location.items()
+            }
 
         self._idx_to_key: list = {idx: k for idx, k in enumerate(_centroid_location_dict.keys())}
         self._centroid_location: torch.Tensor = torch.stack(
@@ -53,7 +59,7 @@ class EncoderBasedClassifier(BaseSignsClassifier):
     @torch.no_grad()
     def classify(self, imgs: List[np.array]) -> List[Tuple[str, float]]:
         imgs = [x / 255 for x in imgs]
-        transformed_imgs = torch.stack([self._transform(image=img)['image'] for img in imgs])
+        transformed_imgs = torch.stack([self._transform(image=img)["image"] for img in imgs])
         transformed_imgs = transformed_imgs.to(self._device, dtype=torch.float32)
         model_pred = self._model(transformed_imgs)
         return self._get_nearest_centroids(model_pred)
@@ -66,21 +72,23 @@ class EncoderBasedClassifier(BaseSignsClassifier):
             sorted_dist_indexes = sorted(dist_as_dict, key=dist_as_dict.get)
             # pick 2 nearest.
             # get conf by (len_to_nearest) / (len_to_nearest + len_to_second_nearest)
-            confidence = 2 * dist_as_dict[sorted_dist_indexes[0]] / \
-                (dist_as_dict[sorted_dist_indexes[0]] + dist_as_dict[sorted_dist_indexes[1]])
+            confidence = (
+                2
+                * dist_as_dict[sorted_dist_indexes[0]]
+                / (dist_as_dict[sorted_dist_indexes[0]] + dist_as_dict[sorted_dist_indexes[1]])
+            )
             key = self._idx_to_key[sorted_dist_indexes[0]]
             nearest_sign.append((key, confidence))
         return nearest_sign
 
 
 def test():
-    device = torch.device('cuda:0')
+    device = torch.device("cuda:0")
     c = EncoderBasedClassifier(
-        path_to_weights='EXCLUDE_ADDI_SIGNSencoder_loss_1e'
-        '-05_acc_0.99566epoch_99.encoder',
-        path_to_model_config='encoder_config.json',
-        path_to_centroid_location='centroid_location.txt',
-        device=device
+        path_to_weights="EXCLUDE_ADDI_SIGNSencoder_loss_1e" "-05_acc_0.99566epoch_99.encoder",
+        path_to_model_config="encoder_config.json",
+        path_to_centroid_location="centroid_location.txt",
+        device=device,
     )
 
     img = imread_rgb(
