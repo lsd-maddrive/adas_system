@@ -1,6 +1,0 @@
-{
-	"base": "efficientnet_b0",
-	"output_len": 512,
-	"input_image_size": 64,
-	"bias": false
-}
