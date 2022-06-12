@@ -23,15 +23,15 @@
       sudo apt-get install build-essential
       ```
 
-- Устанавливаем `python 3.8`
+- Устанавливаем `python 3.10`
   - Windows
 
       Устанавливаем через [официальный установщик](https://www.python.org/downloads/)
 
-  - Linux
+  - Linux (`deadsnakes`)
 
       ```bash
-      sudo apt install python3.8-dev
+      sudo apt install python3.10-dev python3.10-venv python3.10
       ```
 
 - Устанавливаем [poetry](https://python-poetry.org/docs/#installation)
