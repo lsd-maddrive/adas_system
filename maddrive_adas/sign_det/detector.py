@@ -17,7 +17,7 @@ DETECT_INFO_PROTO = {
     "count": 0,
 }
 
-REQUIRED_ARCHIVE_KEYS = ['model', 'centroid_location', 'model_config']
+REQUIRED_ARCHIVE_KEYS = ['model', 'input_image_size', 'model_config']
 
 
 class YoloV5Detector(AbstatractSignDetector):
@@ -36,7 +36,10 @@ class YoloV5Detector(AbstatractSignDetector):
         self._device = device if device else torch.device(
             'cuda' if torch.cuda.is_available() else 'cpu')
 
-        model_dict = torch.load(config_path)
+        model_dict: dict = torch.load(config_path)
+        assert(all([key in model_dict.keys() for key in REQUIRED_ARCHIVE_KEYS])
+               ), f'Verify model archive keys. It should contain {REQUIRED_ARCHIVE_KEYS}'
+
         self._img_size = (
             model_dict['input_image_size'],
             model_dict['input_image_size']
