@@ -22,7 +22,7 @@ class EncoderBasedClassifier(AbstractSignClassifier):
 
     def __init__(
         self,
-        path_to_model_archive: str,
+        config_path: str,
         path_to_centroid_location: dict = None,
         device: torch.device = None,
     ):
@@ -40,7 +40,7 @@ class EncoderBasedClassifier(AbstractSignClassifier):
         self._device = device if device else torch.device(
             'cuda' if torch.cuda.is_available() else 'cpu')
 
-        model_dict: dict = torch.load(path_to_model_archive, map_location=self._device)
+        model_dict: dict = torch.load(config_path, map_location=self._device)
         assert(all([key in model_dict.keys() for key in REQUIRED_ARCHIVE_KEYS])
                ), f'Verify model archive keys. It should contain {REQUIRED_ARCHIVE_KEYS}'
 
@@ -87,7 +87,7 @@ def test():
     DATA_DIR = PROJECT_ROOT / 'SignDetectorAndClassifier' / 'data'
     MODEL_ARCHIVE = PROJECT_ROOT / 'maddrive_adas' / 'sign_det' / 'encoder_cl_config'
 
-    c: AbstractSignClassifier = EncoderBasedClassifier(path_to_model_archive=str(MODEL_ARCHIVE))
+    c: AbstractSignClassifier = EncoderBasedClassifier(config_path=str(MODEL_ARCHIVE))
 
     img1 = imread_rgb(DATA_DIR / 'additional_sign' / '2.4_1.png')
     img2 = imread_rgb(DATA_DIR / 'additional_sign' / '1.31_1.png')

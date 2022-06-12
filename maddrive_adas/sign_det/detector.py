@@ -24,24 +24,19 @@ class YoloV5Detector(AbstatractSignDetector):
 
     def __init__(
         self,
-        path_to_model_archive: str,
+        config_path: str,
         device: torch.device = None
-    ) -> bool:
-        """Detector constructor
+    ):
+        """Detector Constructor.
 
         Args:
-            path_to_cfg (str): _description_
-            path_to_weights (str): _description_
-            device (torch.device): _description_
-            use_half (bool, optional): _description_. Defaults to False.
-
-        Returns:
-            bool: _description_
+            config_path (str): path to archive with REQUIRED_ARCHIVE_KEYS.
+            device (torch.device, optional): specific torch.device. Defaults to None.
         """
         self._device = device if device else torch.device(
             'cuda' if torch.cuda.is_available() else 'cpu')
 
-        model_dict = torch.load(path_to_model_archive)
+        model_dict = torch.load(config_path)
         self._img_size = (
             model_dict['input_image_size'],
             model_dict['input_image_size']
@@ -195,10 +190,10 @@ def test():
     DATA_DIR = PROJECT_ROOT / 'tests' / 'test_data'
     MODEL_ARCHIVE = PROJECT_ROOT / 'maddrive_adas' / 'sign_det' / 'detector_config_img_size'
 
-    c: AbstatractSignDetector = YoloV5Detector(path_to_model_archive=str(MODEL_ARCHIVE))
+    c: AbstatractSignDetector = YoloV5Detector(config_path=str(MODEL_ARCHIVE))
 
     img1 = imread_rgb(DATA_DIR / 'custom_test.png')
-    img2 = imread_rgb(DATA_DIR / 'custom_test.png')
+    img2 = imread_rgb(DATA_DIR / 'test_image.png')
 
     sign = c.detect_batch([img1, img2])
 

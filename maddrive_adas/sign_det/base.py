@@ -2,8 +2,7 @@ import numpy as np
 
 
 class DetectedSign:
-    """
-    Class to control detected sign operations.
+    """Class to control detected sign operations.
 
     We define one point of signs retectino contract for communication
     """
@@ -40,7 +39,7 @@ class AbstractSignClassifier:
         raise NotImplementedError()
 
 
-class Composer:
+class AbstractComposer:
     """Composes AbstatractSignsDetector & AbstatractSignsClassifier.
     """
 
@@ -48,5 +47,9 @@ class Composer:
         raise NotImplementedError()
 
     # TODO: fix my name please
-    def idk_how_to_call_it(self, imgs: list[np.array]) -> None:  # list[tuple[str, float]]:
+    def detect_and_classify_batch(self, imgs: list[np.array]) -> None:  # list[tuple[str, float]]:
+        raise NotImplementedError()
+
+    # TODO: fix my name please
+    def detect_and_classify(self, imgs: list[np.array]) -> None:  # list[tuple[str, float]]:
         raise NotImplementedError()
