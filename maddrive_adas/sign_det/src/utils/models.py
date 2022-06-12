@@ -10,8 +10,17 @@ def get_model_config(path_to_config: str):
     return model_data
 
 
-def get_model_and_img_size(path_to_config: str):
-    model_data = get_model_config(path_to_config)
+def get_model_and_img_size(
+    path_to_config: str = '',
+    config_data: str = ''
+) -> tuple[nn.Module, int]:
+    assert(path_to_config or config_data), f'{__name__} Unable to get model: empty args.'
+    if path_to_config:
+        model_data = get_model_config(path_to_config)
+    else:
+        # TODO: fix double convert
+        model_data = json.loads(json.loads(config_data))
+
     model = getattr(
         importlib.import_module('torchvision.models'),
         f'{model_data["base"]}')(pretrained=True)

@@ -1,8 +1,12 @@
 import cv2
-
+from pathlib import Path
 from .logger import logger
 
-def imread_rgb(fpath):
+
+def imread_rgb(fpath: str | Path):
+    if isinstance(fpath, Path):
+        fpath = str(fpath)
+
     img = cv2.imread(fpath, cv2.IMREAD_COLOR)
     if img is None:
         logger.critical(
