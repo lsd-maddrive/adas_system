@@ -15,7 +15,7 @@ class DetectedSign:
         return {"bbox": self._bbox.tolist()}
 
 
-class AbstatractSignsDetector:
+class AbstatractSignDetector:
     """Base Detector.
     """
 
@@ -23,19 +23,30 @@ class AbstatractSignsDetector:
         raise NotImplementedError()
 
     def detect(self, img: np.array) -> dict:
-        predictions = self.detect_batch([img])
-        return predictions[0]
+        raise NotImplementedError()
 
     def detect_batch(self, imgs: list[np.array]) -> list[dict]:
         raise NotImplementedError()
 
 
-class AbstractSignsClassifier:
-    """Base Calssifier.
+class AbstractSignClassifier:
+    """Base Classifier.
     """
 
     def __init__(self) -> None:
         raise NotImplementedError()
 
     def classify(self, imgs: list[np.array]) -> list[tuple[str, float]]:
+        raise NotImplementedError()
+
+
+class Composer:
+    """Composes AbstatractSignsDetector & AbstatractSignsClassifier.
+    """
+
+    def __init__(self) -> None:
+        raise NotImplementedError()
+
+    # TODO: fix my name please
+    def idk_how_to_call_it(self, imgs: list[np.array]) -> None:  # list[tuple[str, float]]:
         raise NotImplementedError()

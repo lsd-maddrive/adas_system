@@ -1,16 +1,13 @@
-"""YoloV5 based detector."""
-
-
-from typing import List, Tuple
 import copy
-
+from pathlib import Path
 import torch
 import numpy as np
 
+from base import AbstatractSignDetector
 from src.utils.general import non_max_suppression, scale_coords
-from src.utils.logger import logger
 from src.models.yolo import Model
 from src.utils.augmentations import letterbox
+from src.utils.fs import imread_rgb
 
 DETECT_INFO_PROTO = {
     "coords": [],
@@ -20,19 +17,17 @@ DETECT_INFO_PROTO = {
     "count": 0,
 }
 
+REQUIRED_ARCHIVE_KEYS = ['model', 'centroid_location', 'model_config']
 
-class YoloV5Detector():
+
+class YoloV5Detector(AbstatractSignDetector):
 
     def __init__(
         self,
-        path_to_cfg: str,
-        path_to_weights: str,
-        device: torch.device,
-        img_size: Tuple[int, int] = (640, 640),
-        use_half: bool = False
+        path_to_model_archive: str,
+        device: torch.device = None
     ) -> bool:
-        """_summary_
-        TODO:
+        """Detector constructor
 
         Args:
             path_to_cfg (str): _description_
@@ -43,41 +38,31 @@ class YoloV5Detector():
         Returns:
             bool: _description_
         """
-        try:
-            if isinstance(img_size, int):
-                img_size = (img_size, img_size)
+        self._device = device if device else torch.device(
+            'cuda' if torch.cuda.is_available() else 'cpu')
 
-            self.img_size = img_size
-            self._device = device
+        model_dict = torch.load(path_to_model_archive)
+        self._img_size = (
+            model_dict['input_image_size'],
+            model_dict['input_image_size']
+        )
 
-            self._model = Model(cfg=path_to_cfg, ch=3, nc=1)
-            self._model.load_state_dict(
-                torch.load(path_to_weights),
-            )
+        self._model = Model(
+            cfg=dict(model_dict['model_config']),
+            ch=3,
+            nc=1
+        )
 
-            # Do not forget to eval after weights loaded, lmao
-            self._model.eval()
+        self._model.load_state_dict(
+            model_dict['model']
+        )
 
-            if use_half and device.type != 'cpu':
-                self._model.half()
-                self._im_half = True
-            else:
-                self._model.float()
-                self._im_half = False
-
-            self._model.half() if use_half and device.type != 'cpu' else self._model.float()
-            self._model.to(self._device)
-
-            self._is_initialized = True
-
-        except (FileNotFoundError, KeyError) as exc_obj:
-            logger.info(
-                f'{__name__} Cannot initalized backend: {exc_obj}.'
-            )
-            self._is_initialized = False
+        # Do not forget to eval after weights loaded, lmao
+        self._model.eval()
+        self._model.to(self._device)
 
     def _transform_single_img(self, img: np.ndarray) -> torch.Tensor:
-        """_summary_
+        """Transform single img to model input.
 
         Args:
             img (np.ndarray): Input RGB image.
@@ -85,7 +70,7 @@ class YoloV5Detector():
         Returns:
             torch.Tensor: Input for model.
         """
-        frame: np.ndarray = letterbox(img, self.img_size, auto=False)[0]    # resize + letterbox
+        frame: np.ndarray = letterbox(img, self._img_size, auto=False)[0]    # resize + letterbox
         frame = frame.transpose((2, 0, 1))  # [::-1] skip BRG to RGB, coz input image should be RGB
         frame = np.ascontiguousarray(frame)     # idk what this, maybe memory trick
         frame = torch.from_numpy(frame).float()     # uint8 -> float
@@ -106,7 +91,7 @@ class YoloV5Detector():
         multi_label=False,
         labels=(),
         max_det=300,
-    ) -> List[dict]:
+    ) -> list[dict]:
 
         pred = non_max_suppression(
             pred,
@@ -143,7 +128,7 @@ class YoloV5Detector():
         return ret_list
 
     @torch.no_grad()
-    def detect_batch(self, imgs: List[np.array]) -> List[List[np.array]]:
+    def detect_batch(self, imgs: list[np.array]) -> list[list[np.array]]:
         """Returs list of subimages - detected signs.
 
         Return list is list of detected signs per each imgs element.
@@ -154,34 +139,23 @@ class YoloV5Detector():
         Returns:
             List[np.array]: RGB Subimages list for every batch element.
         """
-        if not self._is_initialized:
-            logger.info(
-                f'{__name__} Attempt to detect, but not initialized.'
-            )
-            return []
-
         if len(imgs) == 0:
             return []
 
-        original_img_size: Tuple[int, int] = []
+        original_img_size: list[int] = []
         for img in imgs:
             original_img_size.append((img.shape[0], img.shape[1]))
 
         # transform to list to batch
         # TODO: this might be slow, use torch.tensor in future
         transformed_imgs = [self._transform_single_img(img) for img in imgs]
-        batch = torch.cat(transformed_imgs, dim=0)
-        if self._im_half:
-            batch = batch.half()
-
-        batch = batch.to(self._device)
-
+        batch = torch.cat(transformed_imgs, dim=0).to(self._device)
         preds = self._model(batch)[0]   # why 0? models.common:398 DetectMultiBackend
         # i realy dont know what model output contains besides coords
 
         data = self.translatePreds(
             preds,
-            self.img_size,  # scaled img for model
+            self._img_size,  # scaled img for model
             original_img_size,  #
             # TODO: cardcoded arg
             conf_thres=0.101,
@@ -189,10 +163,10 @@ class YoloV5Detector():
 
         # data stores list (dict of detected signs) per imgs
 
-        ret_list: List = []
+        ret_list: list = []
 
         for idx, img_data in enumerate(data):
-            per_image: List = []
+            per_image: list = []
             for i in range(img_data['count']):
                 cropped = imgs[idx][
                     img_data['coords'][i][1]: img_data['coords'][i][3],
@@ -203,3 +177,33 @@ class YoloV5Detector():
             ret_list.append(per_image)
 
         return ret_list
+
+    def detect(self, img: np.array) -> list[tuple[float, float, float, float]]:
+        """Detect sign on img.
+
+        Args:
+            img (np.array): Input image.
+
+        Returns:
+            list[tuple[float, float, float, float]]: List of relative sign coordinates.
+        """
+        return self.detect_batch([img])
+
+
+def test():
+    PROJECT_ROOT = Path('.')
+    DATA_DIR = PROJECT_ROOT / 'tests' / 'test_data'
+    MODEL_ARCHIVE = PROJECT_ROOT / 'maddrive_adas' / 'sign_det' / 'detector_config_img_size'
+
+    c: AbstatractSignDetector = YoloV5Detector(path_to_model_archive=str(MODEL_ARCHIVE))
+
+    img1 = imread_rgb(DATA_DIR / 'custom_test.png')
+    img2 = imread_rgb(DATA_DIR / 'custom_test.png')
+
+    sign = c.detect_batch([img1, img2])
+
+    return sign
+
+
+if __name__ == '__main__':
+    test()

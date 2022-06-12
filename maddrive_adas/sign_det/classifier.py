@@ -8,12 +8,12 @@ from src.utils.fs import imread_rgb
 from src.utils.transforms import get_minimal_and_augment_transforms
 from src.utils.models import get_model_and_img_size
 
-from base import AbstractSignsClassifier
+from base import AbstractSignClassifier
 
 REQUIRED_ARCHIVE_KEYS = ['model', 'centroid_location', 'model_config']
 
 
-class EncoderBasedClassifier(AbstractSignsClassifier):
+class EncoderBasedClassifier(AbstractSignClassifier):
     """Encoder Bassed Classifier.
 
     Args:
@@ -23,7 +23,7 @@ class EncoderBasedClassifier(AbstractSignsClassifier):
     def __init__(
         self,
         path_to_model_archive: str,
-        path_to_centroid_location: str = '',
+        path_to_centroid_location: dict = None,
         device: torch.device = None,
     ):
         """EncoderBasedClassifier Constructor.
@@ -34,7 +34,7 @@ class EncoderBasedClassifier(AbstractSignsClassifier):
                 - model config json - config;
                 - model weights - model;
                 - centroid locations - centrod;
-            path_to_centroid_location (str, optional): Pass json centroid location for overwriting
+            path_to_centroid_location (dict, optional): Pass dict centroid location for overwriting
             centroids from model archive. Defaults to ''.
         """
         self._device = device if device else torch.device(
@@ -48,9 +48,10 @@ class EncoderBasedClassifier(AbstractSignsClassifier):
         self._model.load_state_dict(model_dict['model'])
         self._transform, _ = get_minimal_and_augment_transforms(self._img_size)
 
-        _centroid_location_dict: dict = json.loads(
-            json.loads(model_dict['centroid_location'])
-        )
+        _centroid_location_dict: dict = path_to_centroid_location \
+            if path_to_centroid_location else json.loads(
+                json.loads(model_dict['centroid_location'])
+            )
         self._idx_to_key: list = {idx: k for idx, k in enumerate(_centroid_location_dict.keys())}
         self._centroid_location: torch.Tensor = torch.stack(
             [torch.Tensor(v) for v in _centroid_location_dict.values()]
@@ -59,7 +60,7 @@ class EncoderBasedClassifier(AbstractSignsClassifier):
     @torch.no_grad()
     def classify(self, imgs: list[np.array]) -> list[tuple[str, float]]:
         imgs = [x / 255 for x in imgs]
-        transformed_imgs = torch.stack([self._transform(image=img)["image"] for img in imgs])
+        transformed_imgs = torch.stack([self._transform(image=img)['image'] for img in imgs])
         transformed_imgs = transformed_imgs.to(self._device, dtype=torch.float32)
         model_pred = self._model(transformed_imgs)
         return self._get_nearest_centroids(model_pred)
@@ -86,7 +87,7 @@ def test():
     DATA_DIR = PROJECT_ROOT / 'SignDetectorAndClassifier' / 'data'
     MODEL_ARCHIVE = PROJECT_ROOT / 'maddrive_adas' / 'sign_det' / 'encoder_cl_config'
 
-    c = EncoderBasedClassifier(path_to_model_archive=str(MODEL_ARCHIVE))
+    c: AbstractSignClassifier = EncoderBasedClassifier(path_to_model_archive=str(MODEL_ARCHIVE))
 
     img1 = imread_rgb(DATA_DIR / 'additional_sign' / '2.4_1.png')
     img2 = imread_rgb(DATA_DIR / 'additional_sign' / '1.31_1.png')
