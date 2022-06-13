@@ -2,78 +2,14 @@ from pathlib import Path
 
 import torch
 import numpy as np
-import cv2
 
-from base import AbstatractSignDetector
+from base import AbstatractSignDetector, DetectedInstance
 from src.utils.general import non_max_suppression, scale_coords
 from src.models.yolo import Model
 from src.utils.augmentations import letterbox
 from src.utils.fs import imread_rgb
 
 REQUIRED_ARCHIVE_KEYS = ['model', 'input_image_size', 'model_config']
-
-
-class DetectedInstance:
-    """Describes instance for classifier.
-    """
-
-    def __init__(self, img: np.array):
-        self.abs_rois: list[int] = []
-        self.rel_rois: list[float] = []
-        self.confs: list[float] = []
-        self.img = img.copy()
-
-    def add_abs_roi(self, roi: list[int], conf: float):
-        self.abs_rois.append(list(map(int, roi)))
-        img_size = self.img.shape
-        self.confs.append(conf)
-        self.rel_rois.append([
-            roi[0] / img_size[1],
-            roi[1] / img_size[0],
-            roi[2] / img_size[1],
-            roi[3] / img_size[0],
-        ])
-
-    def add_rel_roi(self, roi: list[int], conf: float):
-        self.rel_rois.append(roi)
-        img_size = self.img.shape
-        self.confs.append(conf)
-        self.abs_rois.append(list(map(int, [
-            img_size[0] * roi[0],
-            img_size[1] * roi[1],
-            img_size[0] * roi[2],
-            img_size[1] * roi[3],
-        ])))
-
-    def get_rel_roi(self, idx):
-        try:
-            return self.rel_rois[idx]
-        except IndexError:
-            assert False, 'Wrong index'
-
-    def get_abs_roi(self, idx):
-        try:
-            return self.abs_rois[idx]
-        except IndexError:
-            assert False, 'Wrong index'
-
-    def show_img(self):
-        img_ = self.img.copy()
-        for idx, abs_roi in enumerate(self.abs_rois):
-            img_ = cv2.rectangle(
-                img_,
-                (abs_roi[0], abs_roi[1]),
-                (abs_roi[2], abs_roi[3]),
-                (0, 0, 255), 2
-            )
-            img_ = cv2.putText(
-                img_,
-                str(idx), (abs_roi[0], abs_roi[1]),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                1, (0, 0, 255), 2
-            )
-        cv2.imshow(f'{self}', img_)
-        cv2.waitKey(3)
 
 
 class YoloV5Detector(AbstatractSignDetector):

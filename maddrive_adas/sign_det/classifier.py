@@ -8,7 +8,7 @@ from src.utils.fs import imread_rgb
 from src.utils.transforms import get_minimal_and_augment_transforms
 from src.utils.models import get_model_and_img_size
 
-from base import AbstractSignClassifier
+from base import AbstractSignClassifier, DetectedInstance
 
 REQUIRED_ARCHIVE_KEYS = ['model', 'centroid_location', 'model_config']
 
@@ -60,29 +60,21 @@ class EncoderBasedClassifier(AbstractSignClassifier):
     @torch.no_grad()
     def classify_batch(
         self,
-        imgs: list[np.array],
-        relative_sign_pos: list[list[float]]
+        instances: list[DetectedInstance]
     ) -> list[tuple[str, float]]:
 
-        # 1. to float
-        imgs_float = [x / 255 for x in imgs]
         # 2. crop img and make array from it
         imgs: list[np.array] = []
-        for idx, img in enumerate(imgs_float):
-            for sign_pos in relative_sign_pos[idx]:
-                w, h, *_ = img.shape
-                imgs.append(
-                    img[
-                        int(sign_pos[0] * w): int(sign_pos[1] * w),
-                        int(sign_pos[0] * h): int(sign_pos[1] * h),
-                    ],
-                )
+        for instance in instances:
+            for idx in range(0, instance.get_roi_coint()):
+                imgs.append(instance.get_cropped_img(idx))
+
         # 3. pass it to model
         transformed_imgs = torch.stack([self._transform(image=img)['image'] for img in imgs])
         transformed_imgs = transformed_imgs.to(self._device, dtype=torch.float32)
         model_pred = self._model(transformed_imgs)
 
-        # 4. get nearest
+        # 4. get nearest centroid for all img in imgs
         return self._get_nearest_centroids(model_pred)
 
     def _get_nearest_centroids(self, embs) -> list[str]:
@@ -107,16 +99,24 @@ def test():
     DATA_DIR = PROJECT_ROOT / 'SignDetectorAndClassifier' / 'data'
     MODEL_ARCHIVE = PROJECT_ROOT / 'maddrive_adas' / 'sign_det' / 'encoder_cl_config'
 
-    c: AbstractSignClassifier = EncoderBasedClassifier(config_path=str(MODEL_ARCHIVE))
+    c: AbstractSignClassifier = EncoderBasedClassifier(
+        config_path=str(MODEL_ARCHIVE)
+    )
 
     img1 = imread_rgb(DATA_DIR / 'additional_sign' / '2.4_1.png')
     img2 = imread_rgb(DATA_DIR / 'additional_sign' / '1.31_1.png')
     img3 = imread_rgb(DATA_DIR / 'additional_sign' / '3.24.100_3.png')
 
-    sign = c.classify_batch(
-        [img1, img2, img3],
-        [[[0., 1., 0., 1.]] for _ in range(3)]
-    )
+    classify_batch_arg: list[DetectedInstance] = [
+        DetectedInstance(img1),
+        DetectedInstance(img2),
+        DetectedInstance(img3),
+    ]
+    for di in classify_batch_arg:
+        di.add_rel_roi([0., 0, 1., 1.], 1.)
+        di.show_img()
+
+    sign = c.classify_batch(classify_batch_arg)
 
     return sign
 
