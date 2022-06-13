@@ -1,7 +1,8 @@
-import copy
 from pathlib import Path
+
 import torch
 import numpy as np
+import cv2
 
 from base import AbstatractSignDetector
 from src.utils.general import non_max_suppression, scale_coords
@@ -9,13 +10,70 @@ from src.models.yolo import Model
 from src.utils.augmentations import letterbox
 from src.utils.fs import imread_rgb
 
-DETECT_INFO_PROTO = {
-    'relative_coords': [],
-    'confs': [],
-    'coords': []
-}
-
 REQUIRED_ARCHIVE_KEYS = ['model', 'input_image_size', 'model_config']
+
+
+class DetectedInstance:
+    """Describes instance for classifier.
+    """
+
+    def __init__(self, img: np.array):
+        self.abs_rois: list[int] = []
+        self.rel_rois: list[float] = []
+        self.confs: list[float] = []
+        self.img = img.copy()
+
+    def add_abs_roi(self, roi: list[int], conf: float):
+        self.abs_rois.append(list(map(int, roi)))
+        img_size = self.img.shape
+        self.confs.append(conf)
+        self.rel_rois.append([
+            roi[0] / img_size[1],
+            roi[1] / img_size[0],
+            roi[2] / img_size[1],
+            roi[3] / img_size[0],
+        ])
+
+    def add_rel_roi(self, roi: list[int], conf: float):
+        self.rel_rois.append(roi)
+        img_size = self.img.shape
+        self.confs.append(conf)
+        self.abs_rois.append(list(map(int, [
+            img_size[0] * roi[0],
+            img_size[1] * roi[1],
+            img_size[0] * roi[2],
+            img_size[1] * roi[3],
+        ])))
+
+    def get_rel_roi(self, idx):
+        try:
+            return self.rel_rois[idx]
+        except IndexError:
+            assert False, 'Wrong index'
+
+    def get_abs_roi(self, idx):
+        try:
+            return self.abs_rois[idx]
+        except IndexError:
+            assert False, 'Wrong index'
+
+    def show_img(self):
+        img_ = self.img.copy()
+        for idx, abs_roi in enumerate(self.abs_rois):
+            img_ = cv2.rectangle(
+                img_,
+                (abs_roi[0], abs_roi[1]),
+                (abs_roi[2], abs_roi[3]),
+                (0, 0, 255), 2
+            )
+            img_ = cv2.putText(
+                img_,
+                str(idx), (abs_roi[0], abs_roi[1]),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                1, (0, 0, 255), 2
+            )
+        cv2.imshow(f'{self}', img_)
+        cv2.waitKey(3)
 
 
 class YoloV5Detector(AbstatractSignDetector):
@@ -87,7 +145,7 @@ class YoloV5Detector(AbstatractSignDetector):
         multi_label=False,
         labels=(),
         max_det=300,
-    ) -> list[dict]:
+    ) -> list[dict]:    # TODO: fix annotation
 
         pred = non_max_suppression(
             pred,
@@ -100,26 +158,18 @@ class YoloV5Detector(AbstatractSignDetector):
             max_det=max_det,
         )
 
-        ret_list: list = []
+        ret_list: list[DetectedInstance] = []
 
-        for i, det in enumerate(pred):
-            detect_info = copy.deepcopy(DETECT_INFO_PROTO)
-            if len(det):
-                current_img_size = source_img_size[i]
-                det[:, :4] = scale_coords(
-                    nn_img_size, det[:, :4], current_img_size
+        for detections, img_size in zip(pred, source_img_size):
+            detect_info: list[tuple[list[int], float]] = []
+            if len(detections):
+                detections[:, :4] = scale_coords(
+                    nn_img_size, detections[:, :4], img_size
                 ).round()
-                for det_instance in det:
-                    det_instance_f = det_instance[:4].float()
-                    detect_info['coords'].append(
-                        list(map(int, det_instance_f)))
-                    detect_info['relative_coords'].append(list(map(float, [
-                        det_instance_f[0] / current_img_size[1],
-                        det_instance_f[1] / current_img_size[0],
-                        det_instance_f[2] / current_img_size[1],
-                        det_instance_f[3] / current_img_size[0],
-                    ])))
-                detect_info['confs'].append(list(map(float, det[:, 4])))
+
+                detect_info.extend(
+                    detections[:, :5].tolist()
+                )
 
             ret_list.append(detect_info)
 
@@ -151,15 +201,25 @@ class YoloV5Detector(AbstatractSignDetector):
         preds = self._model(batch)[0]   # why 0? models.common:398 DetectMultiBackend
         # i realy dont know what model output contains besides coords
 
-        data = YoloV5Detector.translatePreds(
+        translated_preds = YoloV5Detector.translatePreds(
             preds,
             self._img_size,  # scaled img for model
             original_img_size,  #
             # TODO: cardcoded arg
-            conf_thres=0.11,
+            conf_thres=0.10,
             max_det=10)
 
-        return data
+        # transform to DetectedInstance
+        ret_list: list[DetectedInstance] = []
+        assert len(translated_preds) == len(imgs), 'Array len mismatch'
+        for img, tpreds in zip(imgs, translated_preds):
+            di = DetectedInstance(img)
+            for pred in tpreds:
+                di.add_abs_roi(pred[:4], pred[4])
+            di.show_img()
+            ret_list.append(di)
+
+        return ret_list
 
     def detect(self, img: np.array) -> list[tuple[float, float, float, float]]:
         """Detect sign on img.
