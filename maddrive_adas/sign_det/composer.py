@@ -1,9 +1,10 @@
 from pathlib import Path
+import sys
+sys.path.append(str(Path(__file__).parents[1]))  # TODO: fix dynamic appending
 
 import numpy as np
 
 from src.utils.fs import imread_rgb
-
 from base import (
     AbstractSignClassifier, AbstatractSignDetector,
     AbstractComposer, DetectedInstance
@@ -35,7 +36,7 @@ class YoloSignsDetectorAndClassifier(AbstractComposer):
 
 
 def test():
-    PROJECT_ROOT = Path('.')
+    PROJECT_ROOT = Path('..')
     DATA_DIR = PROJECT_ROOT / 'tests' / 'test_data'
     DETECTOR_ARCHIVE = PROJECT_ROOT / 'maddrive_adas' / 'sign_det' / 'detector_config_img_size'
     CLASSIFIER_ARCHIVE = PROJECT_ROOT / 'maddrive_adas' / 'sign_det' / 'encoder_cl_config'
