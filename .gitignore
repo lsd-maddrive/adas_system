@@ -1,16 +1,10 @@
-nohup.out
-**.encoder
-./notebooks/SignDetectorAndClassifier/notebook/runs/*
 .venv/
 .git/
-/notebooks/SignDetectorAndClassifier/data
-!SignDetectorAndClassifier/data
-SignDetectorAndClassifier/data/*
-SignDetectorAndClassifier/data/*/*
-SignDetectorAndClassifier/notebooks/**
-
-!SignDetectorAndClassifier/data/**.csv
-
+nohup.out
+!SignDetectorAndClassifier/**
+SignDetectorAndClassifier/data/**
+SignDetectorAndClassifier/src/**
+SignDetectorAndClassifier/src_old/**
 new 1.txt
 **/*.ipynb_checkpoints/
 */.ipynb_checkpoints/*.ipynb
