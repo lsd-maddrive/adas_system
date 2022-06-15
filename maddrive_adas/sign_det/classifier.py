@@ -1,5 +1,7 @@
 from pathlib import Path
 import json
+import sys
+sys.path.append(str(Path(__file__).parents[1]))  # TODO: fix dynamic appending
 
 import torch
 import numpy as np
@@ -95,7 +97,7 @@ class EncoderBasedClassifier(AbstractSignClassifier):
 
 
 def test():
-    PROJECT_ROOT = Path('.')
+    PROJECT_ROOT = Path(__file__).parents[2]
     DATA_DIR = PROJECT_ROOT / 'SignDetectorAndClassifier' / 'data'
     MODEL_ARCHIVE = PROJECT_ROOT / 'maddrive_adas' / 'sign_det' / 'encoder_cl_config'
 

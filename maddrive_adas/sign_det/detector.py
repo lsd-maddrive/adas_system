@@ -1,4 +1,6 @@
 from pathlib import Path
+import sys
+sys.path.append(str(Path(__file__).parents[1]))  # TODO: fix dynamic appending
 
 import torch
 import numpy as np
@@ -170,7 +172,7 @@ class YoloV5Detector(AbstatractSignDetector):
 
 
 def test():
-    PROJECT_ROOT = Path('.')
+    PROJECT_ROOT = Path(__file__).parents[2]
     DATA_DIR = PROJECT_ROOT / 'tests' / 'test_data'
     MODEL_ARCHIVE = PROJECT_ROOT / 'maddrive_adas' / 'sign_det' / 'detector_config_img_size'
 

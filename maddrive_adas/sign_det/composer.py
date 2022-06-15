@@ -36,7 +36,7 @@ class YoloSignsDetectorAndClassifier(AbstractComposer):
 
 
 def test():
-    PROJECT_ROOT = Path('..')
+    PROJECT_ROOT = Path(__file__).parents[2]
     DATA_DIR = PROJECT_ROOT / 'tests' / 'test_data'
     DETECTOR_ARCHIVE = PROJECT_ROOT / 'maddrive_adas' / 'sign_det' / 'detector_config_img_size'
     CLASSIFIER_ARCHIVE = PROJECT_ROOT / 'maddrive_adas' / 'sign_det' / 'encoder_cl_config'
