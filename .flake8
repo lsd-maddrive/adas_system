@@ -9,5 +9,5 @@ max-complexity = 10
 
 exclude =
     # YOLO src and utils
-    maddrive_adas/sign_det/src/*
+    maddrive_adas/src/*
     notebooks/SignDetectorAndClassifier/src/*
