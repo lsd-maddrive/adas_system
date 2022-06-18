@@ -26,7 +26,7 @@ from PIL import ExifTags, Image, ImageOps
 from torch.utils.data import DataLoader, Dataset, dataloader, distributed
 from tqdm import tqdm
 
-from utils.augmentations import (
+from maddrive_adas.utils.augmentations import (
     Albumentations,
     augment_hsv,
     copy_paste,
@@ -34,7 +34,7 @@ from utils.augmentations import (
     mixup,
     random_perspective,
 )
-from utils.general import (
+from maddrive_adas.utils.general import (
     LOGGER,
     NUM_THREADS,
     check_dataset,
@@ -47,7 +47,7 @@ from utils.general import (
     xywhn2xyxy,
     xyxy2xywhn,
 )
-from utils.torch_utils import torch_distributed_zero_first
+from maddrive_adas.utils.torch_utils import torch_distributed_zero_first
 
 # Parameters
 HELP_URL = "https://github.com/ultralytics/yolov5/wiki/Train-Custom-Data"
@@ -1037,14 +1037,14 @@ def load_mosaic9(self, index):
         segments9.extend(segments)
 
         # Image
-        img9[y1:y2, x1:x2] = img[y1 - pady :, x1 - padx :]  # img9[ymin:ymax, xmin:xmax]
+        img9[y1:y2, x1:x2] = img[y1 - pady:, x1 - padx:]  # img9[ymin:ymax, xmin:xmax]
         hp, wp = h, w  # height, width previous
 
     # Offset
     yc, xc = (
         int(random.uniform(0, s)) for _ in self.mosaic_border
     )  # mosaic center x, y
-    img9 = img9[yc : yc + 2 * s, xc : xc + 2 * s]
+    img9 = img9[yc: yc + 2 * s, xc: xc + 2 * s]
 
     # Concat/clip labels
     labels9 = np.concatenate(labels9, 0)
@@ -1090,7 +1090,7 @@ def flatten_recursive(path="../datasets/coco128"):
 
 def extract_boxes(
     path="../datasets/coco128",
-):  # from utils.datasets import *; extract_boxes()
+):  # from maddrive_adas.utils.datasets import *; extract_boxes()
     # Convert detection dataset into classification dataset, with one directory per class
     path = Path(path)  # images dir
     shutil.rmtree(path / "classifier") if (
@@ -1131,7 +1131,7 @@ def extract_boxes(
                     b[[0, 2]] = np.clip(b[[0, 2]], 0, w)  # clip boxes outside of image
                     b[[1, 3]] = np.clip(b[[1, 3]], 0, h)
                     assert cv2.imwrite(
-                        str(f), im[b[1] : b[3], b[0] : b[2]]
+                        str(f), im[b[1]: b[3], b[0]: b[2]]
                     ), f"box failure in {f}"
 
 
@@ -1139,7 +1139,7 @@ def autosplit(
     path="../datasets/coco128/images", weights=(0.9, 0.1, 0.0), annotated_only=False
 ):
     """ Autosplit a dataset into train/val/test splits and save path/autosplit_*.txt files
-    Usage: from utils.datasets import *; autosplit()
+    Usage: from maddrive_adas.utils.datasets import *; autosplit()
     Arguments
         path:            Path to images directory
         weights:         Train, val, test weights (list, tuple)
@@ -1250,8 +1250,8 @@ def dataset_stats(
 ):
     """ Return dataset statistics dictionary with images and instances counts per split per class
     To run in parent directory: export PYTHONPATH="$PWD/yolov5"
-    Usage1: from utils.datasets import *; dataset_stats('coco128.yaml', autodownload=True)
-    Usage2: from utils.datasets import *; dataset_stats('../datasets/coco128_with_yaml.zip')
+    Usage1: from maddrive_adas.utils.datasets import *; dataset_stats('coco128.yaml', autodownload=True)
+    Usage2: from maddrive_adas.utils.datasets import *; dataset_stats('../datasets/coco128_with_yaml.zip')
     Arguments
         path:           Path to data.yaml or data.zip (with data.yaml inside data.zip)
         autodownload:   Attempt to download dataset if not found locally

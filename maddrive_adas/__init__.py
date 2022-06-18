@@ -1,6 +1,8 @@
-# make it also root
-# TODO: Леша, плз, наверное так нельзя
-import sys
-from pathlib import Path
-
-sys.path.append(str(Path(__file__).parent))
+from .utils import *
+from .models import *
+from .sign_det.base import (
+    AbstractComposer, AbstractSignClassifier,
+    AbstractSignDetector, DetectedInstance)
+from .sign_det.classifier import EncoderBasedClassifier
+from .sign_det.detector import YoloV5Detector
+from .sign_det.composer import BasicSignsDetectorAndClassifier

@@ -46,7 +46,7 @@ def safe_download(file, url, url2=None, min_bytes=1e0, error_msg=""):
 
 def attempt_download(
     file, repo="ultralytics/yolov5"
-):  # from utils.downloads import *; attempt_download()
+):  # from maddrive_adas.utils.downloads import *; attempt_download()
     # Attempt file download if does not exist
     file = Path(str(file).strip().replace("'", ""))
 

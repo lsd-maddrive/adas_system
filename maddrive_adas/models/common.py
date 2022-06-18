@@ -21,8 +21,8 @@ import yaml
 from PIL import Image
 from torch.cuda import amp
 
-from utils.datasets import exif_transpose, letterbox
-from utils.general import (
+from maddrive_adas.utils.datasets import exif_transpose, letterbox
+from maddrive_adas.utils.general import (
     LOGGER,
     check_requirements,
     check_suffix,
@@ -35,8 +35,8 @@ from utils.general import (
     xywh2xyxy,
     xyxy2xywh,
 )
-from utils.plots import Annotator, colors, save_one_box
-from utils.torch_utils import copy_attr, time_sync
+from maddrive_adas.utils.plots import Annotator, colors, save_one_box
+from maddrive_adas.utils.torch_utils import copy_attr, time_sync
 
 
 def autopad(k, p=None):  # kernel, padding
@@ -611,7 +611,8 @@ class AutoShape(nn.Module):
     iou = 0.45  # NMS IoU threshold
     agnostic = False  # NMS class-agnostic
     multi_label = False  # NMS multiple labels per box
-    classes = None  # (optional list) filter by class, i.e. = [0, 15, 16] for COCO persons, cats and dogs
+    # (optional list) filter by class, i.e. = [0, 15, 16] for COCO persons, cats and dogs
+    classes = None
     max_det = 1000  # maximum number of detections per image
     amp = False  # Automatic Mixed Precision (AMP) inference
 

@@ -6,8 +6,8 @@ Loss functions
 import torch
 import torch.nn as nn
 
-from utils.metrics import bbox_iou
-from utils.torch_utils import is_parallel
+from maddrive_adas.utils.metrics import bbox_iou
+from maddrive_adas.utils.torch_utils import is_parallel
 
 
 def smooth_BCE(

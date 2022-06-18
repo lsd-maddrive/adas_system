@@ -10,7 +10,7 @@ import torch
 import yaml
 from tqdm import tqdm
 
-from utils.general import LOGGER, colorstr, emojis
+from maddrive_adas.utils.general import LOGGER, colorstr, emojis
 
 PREFIX = colorstr("AutoAnchor: ")
 
@@ -97,7 +97,7 @@ def kmean_anchors(
             k: kmeans evolved anchors
 
         Usage:
-            from utils.autoanchor import *; _ = kmean_anchors()
+            from maddrive_adas.utils.autoanchor import *; _ = kmean_anchors()
     """
     from scipy.cluster.vq import kmeans
 
@@ -134,7 +134,7 @@ def kmean_anchors(
     if isinstance(dataset, str):  # *.yaml file
         with open(dataset, errors="ignore") as f:
             data_dict = yaml.safe_load(f)  # model dict
-        from utils.datasets import LoadImagesAndLabels
+        from maddrive_adas.utils.datasets import LoadImagesAndLabels
 
         dataset = LoadImagesAndLabels(data_dict["train"], augment=True, rect=True)
 
