@@ -3,8 +3,8 @@
 nohup.out
 
 SignDetectorAndClassifier/**
-# !.SignDetectorAndClassifier/notebooks/*.ipynb
-
+!SignDetectorAndClassifier/notebooks/*.ipynb
+!SignDetectorAndClassifier/encoder_config.json
 new 1.txt
 **/*.ipynb_checkpoints/
 */.ipynb_checkpoints/*.ipynb
