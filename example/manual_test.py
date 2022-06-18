@@ -10,31 +10,31 @@ from maddrive_adas.sign_det.classifier import EncoderBasedClassifier
 from maddrive_adas.sign_det.composer import BasicSignsDetectorAndClassifier
 
 PROJECT_ROOT = Path('.')
+DETECTOR_ARCHIVE = PROJECT_ROOT / 'maddrive_adas' / 'sign_det' / 'detector_config_img_size'
+CLASSIFIER_ARCHIVE = PROJECT_ROOT / 'maddrive_adas' / 'sign_det' / 'encoder_cl_config'
+
+c: AbstractSignClassifier = EncoderBasedClassifier(
+    config_path=str(CLASSIFIER_ARCHIVE)
+)
+
+d: AbstractSignDetector = YoloV5Detector(
+    config_path=str(DETECTOR_ARCHIVE)
+)
 
 
 def test_detector():
     DATA_DIR = PROJECT_ROOT / 'tests' / 'test_data'
-    MODEL_ARCHIVE = PROJECT_ROOT / 'maddrive_adas' / 'sign_det' / 'detector_config_img_size'
-
-    c: AbstractSignDetector = YoloV5Detector(
-        config_path=str(MODEL_ARCHIVE)
-    )
 
     img1 = imread_rgb(DATA_DIR / 'custom_test.png')
     img2 = imread_rgb(DATA_DIR / 'test_image.png')
 
-    sign = c.detect_batch([img1, img2])
+    sign = d.detect_batch([img1, img2])
 
     return sign
 
 
 def test_classifier():
     DATA_DIR = PROJECT_ROOT / 'SignDetectorAndClassifier' / 'data'
-    MODEL_ARCHIVE = PROJECT_ROOT / 'maddrive_adas' / 'sign_det' / 'encoder_cl_config'
-
-    c: AbstractSignClassifier = EncoderBasedClassifier(
-        config_path=str(MODEL_ARCHIVE)
-    )
 
     img1 = imread_rgb(DATA_DIR / 'additional_sign' / '2.4_1.png')
     img2 = imread_rgb(DATA_DIR / 'additional_sign' / '1.31_1.png')
@@ -56,19 +56,9 @@ def test_classifier():
 
 def test_composer():
     DATA_DIR = PROJECT_ROOT / 'tests' / 'test_data'
-    DETECTOR_ARCHIVE = PROJECT_ROOT / 'maddrive_adas' / 'sign_det' / 'detector_config_img_size'
-    CLASSIFIER_ARCHIVE = PROJECT_ROOT / 'maddrive_adas' / 'sign_det' / 'encoder_cl_config'
 
     img1 = imread_rgb(DATA_DIR / 'custom_test.png')
     img2 = imread_rgb(DATA_DIR / 'test_image.png')
-
-    c: AbstractSignClassifier = EncoderBasedClassifier(
-        config_path=str(CLASSIFIER_ARCHIVE)
-    )
-
-    d: AbstractSignDetector = YoloV5Detector(
-        config_path=str(DETECTOR_ARCHIVE)
-    )
 
     model: AbstractComposer = BasicSignsDetectorAndClassifier(
         classifier=c,
