@@ -75,7 +75,7 @@ class EncoderBasedClassifier(AbstractSignClassifier):
         # 2. crop img and make array from it
         imgs: list[np.array] = []
         for instance in instances:
-            for idx in range(0, instance.get_roi_coint()):
+            for idx in range(0, instance.get_roi_count()):
                 imgs.append(instance.get_cropped_img(idx))
 
         # 3. pass it to model

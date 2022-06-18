@@ -66,7 +66,7 @@ class DetectedInstance:  # TODO: remove detected sign class?
         cv2.imshow(f'{self}', img_)
         cv2.waitKey(3)
 
-    def get_roi_coint(self) -> int:
+    def get_roi_count(self) -> int:
         return len(self.rel_rois)
 
     def get_cropped_img(self, roi_idx) -> np.array:
