@@ -1,16 +1,12 @@
-from pathlib import Path
 import json
-import sys
-sys.path.append(str(Path(__file__).parents[1]))  # TODO: fix dynamic appending
 
 import torch
 import numpy as np
 
-from src.utils.fs import imread_rgb
-from src.utils.transforms import get_minimal_and_augment_transforms
-from src.utils.models import get_model_and_img_size
+from .base import AbstractSignClassifier, DetectedInstance
+from maddrive_adas.utils.transforms import get_minimal_and_augment_transforms
+from maddrive_adas.utils.models import get_model_and_img_size
 
-from base import AbstractSignClassifier, DetectedInstance
 
 REQUIRED_ARCHIVE_KEYS = ['model', 'centroid_location', 'model_config']
 
@@ -94,34 +90,3 @@ class EncoderBasedClassifier(AbstractSignClassifier):
             key = self._idx_to_key[sorted_dist_idxies[0]]
             nearest_sign.append((key, confidence))
         return nearest_sign
-
-
-def test():
-    PROJECT_ROOT = Path(__file__).parents[2]
-    DATA_DIR = PROJECT_ROOT / 'SignDetectorAndClassifier' / 'data'
-    MODEL_ARCHIVE = PROJECT_ROOT / 'maddrive_adas' / 'sign_det' / 'encoder_cl_config'
-
-    c: AbstractSignClassifier = EncoderBasedClassifier(
-        config_path=str(MODEL_ARCHIVE)
-    )
-
-    img1 = imread_rgb(DATA_DIR / 'additional_sign' / '2.4_1.png')
-    img2 = imread_rgb(DATA_DIR / 'additional_sign' / '1.31_1.png')
-    img3 = imread_rgb(DATA_DIR / 'additional_sign' / '3.24.100_3.png')
-
-    classify_batch_arg: list[DetectedInstance] = [
-        DetectedInstance(img1),
-        DetectedInstance(img2),
-        DetectedInstance(img3),
-    ]
-    for di in classify_batch_arg:
-        di.add_rel_roi([0., 0, 1., 1.], 1.)
-        di.show_img()
-
-    sign = c.classify_batch(classify_batch_arg)
-
-    return sign
-
-
-if __name__ == "__main__":
-    test()

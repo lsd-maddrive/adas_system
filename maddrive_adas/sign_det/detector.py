@@ -1,20 +1,15 @@
-from pathlib import Path
-import sys
-sys.path.append(str(Path(__file__).parents[1]))  # TODO: fix dynamic appending
-
 import torch
 import numpy as np
 
-from base import AbstatractSignDetector, DetectedInstance
-from src.utils.general import non_max_suppression, scale_coords
-from src.models.yolo import Model
-from src.utils.augmentations import letterbox
-from src.utils.fs import imread_rgb
+from .base import AbstractSignDetector, DetectedInstance
+from maddrive_adas.utils.general import non_max_suppression, scale_coords
+from maddrive_adas.models.yolo import Model
+from maddrive_adas.utils.augmentations import letterbox
 
 REQUIRED_ARCHIVE_KEYS = ['model', 'input_image_size', 'model_config']
 
 
-class YoloV5Detector(AbstatractSignDetector):
+class YoloV5Detector(AbstractSignDetector):
 
     def __init__(
         self,
@@ -169,23 +164,3 @@ class YoloV5Detector(AbstatractSignDetector):
             list[tuple[float, float, float, float]]: List of relative sign coordinates.
         """
         return self.detect_batch([img])[0]
-
-
-def test():
-    PROJECT_ROOT = Path(__file__).parents[2]
-    DATA_DIR = PROJECT_ROOT / 'tests' / 'test_data'
-    MODEL_ARCHIVE = PROJECT_ROOT / 'maddrive_adas' / 'sign_det' / 'detector_config_img_size'
-
-    c: AbstatractSignDetector = YoloV5Detector(config_path=str(MODEL_ARCHIVE))
-
-    img1 = imread_rgb(DATA_DIR / 'custom_test.png')
-    img2 = imread_rgb(DATA_DIR / 'test_image.png')
-
-    sign = c.detect_batch([img1, img2])
-    # sign = c.detect(img2)
-
-    return sign
-
-
-if __name__ == '__main__':
-    test()

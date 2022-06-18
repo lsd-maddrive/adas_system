@@ -1,12 +1,12 @@
 import os
+from pathlib import Path
+
 import pytest
 import numpy as np
 
-import sys
-sys.path.append('.')
-
-from maddrive_adas.sign_det.composer import YoloSignsDetector
-from maddrive_adas.sign_det.src.utils import fs
+from maddrive_adas.sign_det.composer import BasicSignsDetectorAndClassifier
+from maddrive_adas.sign_det.base import AbstractSignDetector
+from maddrive_adas.utils import fs
 
 
 @pytest.fixture(scope="module")
@@ -16,21 +16,21 @@ def detector_test_image(test_data_dpath) -> np.array:
     return img
 
 
-def test_detector_bsae_execution(detector_test_image):
+def test_detector_base_execution(detector_test_image):
     # .copy() - to avoid overwriting over source image
     src_img = detector_test_image.copy()
+    PROJECT_ROOT = Path(__file__).parents[2]
+    MODEL_ARCHIVE = PROJECT_ROOT / 'maddrive_adas' / 'sign_det' / 'detector_config_img_size'
 
-    detector = YoloSignsDetector()
-    detector.initialize(
-        path_to_yolo_cfg='yolov5L_custom_anchors.yaml',
-        path_to_yolo_weights='YoloV5L_weights.pt',
-        path_to_classifier_weights='classifier_wights.pt',
-        not_encoder_based_classifier=True,
-        path_to_centroid_location='centroid_location.txt',
-        path_to_model_config='encoder_config.json'
+    detector: AbstractSignDetector = BasicSignsDetectorAndClassifier(
+        config_path=str(MODEL_ARCHIVE)
     )
 
     detections = detector.detect(src_img)
 
     assert len(detections) == 2
     # TODO - other checks like coordinates (position), width/height (size)
+
+
+if __name__ == '__main__':
+    test_detector_base_execution

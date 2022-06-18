@@ -91,11 +91,11 @@ class DetectedSign:
         return {"bbox": self._bbox.tolist()}
 
 
-class AbstatractSignDetector:
+class AbstractSignDetector:
     """Base Detector.
     """
 
-    def __init__(self) -> None:  # TODO: сделать общий конструктов?
+    def __init__(*args, **kwargs) -> None:  # TODO: сделать общий конструктов?
         raise NotImplementedError()
 
     def detect(self, img: np.array) -> dict[str, list]:
@@ -125,7 +125,7 @@ class AbstractSignClassifier:
     """Base Classifier.
     """
 
-    def __init__(self) -> None:
+    def __init__(*args, **kwargs) -> None:
         raise NotImplementedError()
 
     def classify_batch(
@@ -151,8 +151,9 @@ class AbstractComposer:
     """Composes AbstatractSignsDetector & AbstatractSignsClassifier.
     """
 
-    def __init__(self, detector: AbstatractSignDetector, classifier: AbstractSignClassifier):
-        """Composes Detector and Classifiner.
+    # TODO: allow to use only this constructor
+    def __init__(self, detector: AbstractSignDetector, classifier: AbstractSignClassifier):
+        """Composes Detector and Classifier.
 
         Args:
             detector (AbstatractSignDetector): Initialized Detector.
