@@ -2,6 +2,9 @@
 """
 Dataloaders and dataset utils
 """
+from torch.utils.data import DataLoader
+from utils.fs import imread_rgb
+import pandas as pd
 import cv2
 import glob
 import hashlib
@@ -1370,3 +1373,48 @@ def dataset_stats(
     if verbose:
         print(json.dumps(stats, indent=2, sort_keys=False))
     return stats
+
+
+###
+"""CUSTOM PART"""
+
+
+class SignDataset(torch.utils.data.Dataset):
+    def __init__(self, df: pd.DataFrame, set_label=None, hyp=None, transform=None, alpha_color=None):
+        self.transform = transform
+        self.df = df[df['set'] == set_label] if set_label else df
+        self.hyp = hyp
+        self.alpha_color = alpha_color
+
+    def __len__(self):
+        return len(self.df.index)
+
+    def __getitem__(self, index):
+        row = self.df.iloc[index]
+        label = int(row['encoded'])
+        path = str(row['filepath'])
+        sign = str(row['sign'])
+        img = imread_rgb(path)
+
+        # augment
+        if self.transform:
+            img = self.transform(image=img)['image']
+        # /augment
+
+        img = img / 255
+        return img, label, (path, sign)
+
+
+def get_dataloader_from_dataset(dataset, shuffle=False, drop_last=True, batch_size=-1, num_workers=-1):
+    return DataLoader(
+        dataset,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        pin_memory=True,
+        shuffle=shuffle,
+        drop_last=drop_last
+    )
+
+
+###
+"""END OF CUSTOM PART"""
