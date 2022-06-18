@@ -30,7 +30,12 @@ def get_model_and_img_size(
         model_data = get_model_config(path_to_config)
     else:
         model_data = json.loads(config_data)
+        # TODO: fix ME. multiple json translations
+        while isinstance(model_data, str):
+            model_data = json.loads(model_data)
+            print(type(model_data))
 
+    print('[!]', model_data)
     model = getattr(
         importlib.import_module('torchvision.models'),
         f'{model_data["base"]}')(pretrained=True)
@@ -93,7 +98,7 @@ class makeDetectFromModel(torch.nn.Module):
             )  # input image
             self.forward(im)  # warmup
 
-    @staticmethod
+    @ staticmethod
     def translatePreds(
         pred,
         nn_img_size,

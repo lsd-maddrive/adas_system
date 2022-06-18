@@ -1,3 +1,4 @@
+import json
 
 import torch
 import numpy as np
@@ -50,6 +51,10 @@ class EncoderBasedClassifier(AbstractSignClassifier):
 
         _centroid_location_dict: dict = path_to_centroid_location \
             if path_to_centroid_location else model_dict['centroid_location']
+
+        # TODO: fix ME. multiple json translations
+        while isinstance(_centroid_location_dict, str):
+            _centroid_location_dict = json.loads(_centroid_location_dict)
 
         self._idx_to_key: list = {idx: k for idx, k in enumerate(_centroid_location_dict.keys())}
         self._centroid_location: torch.Tensor = torch.stack(
