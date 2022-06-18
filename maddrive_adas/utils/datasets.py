@@ -3,7 +3,7 @@
 Dataloaders and dataset utils
 """
 from torch.utils.data import DataLoader
-from utils.fs import imread_rgb
+from maddrive_adas.utils.fs import imread_rgb
 import pandas as pd
 import cv2
 import glob
