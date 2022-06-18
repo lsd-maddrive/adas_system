@@ -17,8 +17,8 @@ from maddrive_adas.utils.torch_utils import (
 from maddrive_adas.utils.plots import feature_visualization
 from maddrive_adas.utils.general import LOGGER, check_version, check_yaml, make_divisible, print_args
 from maddrive_adas.utils.autoanchor import check_anchor_order
-from models.experimental import *
-from models.common import *
+from maddrive_adas.models.experimental import *
+from maddrive_adas.models.common import *
 import argparse
 import sys
 from copy import deepcopy

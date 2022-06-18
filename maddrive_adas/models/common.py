@@ -349,7 +349,7 @@ class DetectMultiBackend(nn.Module):
         #   ONNX Runtime:           *.onnx
         #   OpenCV DNN:             *.onnx with dnn=True
         #   TensorRT:               *.engine
-        from models.experimental import (
+        from maddrive_adas.models.experimental import (
             attempt_download,
             attempt_load,
         )  # scoped to avoid circular import
