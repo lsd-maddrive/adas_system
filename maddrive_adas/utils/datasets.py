@@ -1416,5 +1416,166 @@ def get_dataloader_from_dataset(dataset, shuffle=False, drop_last=True, batch_si
     )
 
 
+class YoloDataset(torch.utils.data.Dataset):
+    def __init__(
+        self,
+        df,
+        set_label,
+        hyp_arg,
+        img_size=640,
+        batch_size=16,
+        augment=False,
+        hyp=None,
+    ):
+
+        self.img_size = img_size
+        self.augment = augment
+        self.hyp = hyp_arg
+
+        self.df = df[df["set"] == set_label]
+        self.albumentations = Albumentations() if augment else None
+
+    def loadImage(self, instance):
+        path, (w0, h0) = instance["filepath"], instance["size"]
+        im = cv2.imread(path)
+        assert im is not None, f"Image Not Found {path}"
+
+        r = self.img_size / max(h0, w0)  # ratio
+
+        if r != 1:  # if sizes are not equal
+            im = cv2.resize(
+                im,
+                (int(w0 * r), int(h0 * r)),
+                interpolation=cv2.INTER_AREA
+                if r < 1 and not self.augment
+                else cv2.INTER_LINEAR,
+            )
+        return im, (h0, w0), im.shape[:2]
+
+    def __getitem__(self, index):
+
+        # locate img info from DataFrame
+        instance = self.df.iloc[index]
+
+        # get Img, src height, width and resized height, width
+        img, (h0, w0), (h, w) = self.loadImage(instance)
+
+        shape = self.img_size
+
+        # make img square
+        # print('>', (img>1).sum())
+        # print('<=', (img<=1).sum())
+        img, ratio, pad = letterbox(img, shape, auto=False, scaleup=self.augment)
+        # print(pad)
+        # store core shape info
+        shapes = (h0, w0), ((h / h0, w / w0), pad)  # for COCO mAP rescaling
+
+        # add class to labels. We have 1 class, so just add zeros into first column
+        labels = np.array(instance["coords"])
+        labels = np.c_[np.zeros(labels.shape[0]), labels]
+        # print(labels)
+
+        # fix labels location caused by letterbox
+        labels[:, 1:] = xywhn2xyxy(
+            labels[:, 1:], ratio[0] * w, ratio[1] * h, padw=pad[0], padh=pad[1]
+        )
+
+        if self.augment:
+            img, labels = random_perspective(
+                img,
+                labels,
+                degrees=self.hyp["degrees"],
+                translate=self.hyp["translate"],
+                scale=self.hyp["scale"],
+                shear=self.hyp["shear"],
+                perspective=self.hyp["perspective"],
+            )
+
+        labels[:, 1:5] = xyxy2xywhn(
+            labels[:, 1:5], w=img.shape[1], h=img.shape[0], clip=False, eps=1e-3
+        )
+
+        # YOLO augmentation technique (!copy-paste!)
+        if self.augment:
+            # print('augm for', index, instance['filepath'])
+            # Albumentations
+            img, labels = self.albumentations(img, labels)
+            nl = len(labels)  # update after albumentations
+
+            # HSV color-space
+            augment_hsv(
+                img,
+                hgain=self.hyp["hsv_h"],
+                sgain=self.hyp["hsv_s"],
+                vgain=self.hyp["hsv_v"],
+            )
+
+            # Flip up-down
+            if random.random() < self.hyp["flipud"]:
+                img = np.flipud(img)
+                if nl:
+                    labels[:, 2] = 1 - labels[:, 2]
+
+            # Flip left-right
+            if random.random() < self.hyp["fliplr"]:
+                img = np.fliplr(img)
+                if nl:
+                    labels[:, 1] = 1 - labels[:, 1]
+
+        nl = len(labels)
+
+        # why out size (?, 6)??
+        labels_out = torch.zeros((nl, 6))
+        if nl:
+            labels_out[:, 1:] = torch.from_numpy(labels)
+
+        img = img.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
+        img = np.ascontiguousarray(img)
+
+        return torch.from_numpy(img), labels_out, instance["filepath"], shapes
+
+    def __len__(self):
+        return len(self.df.index)
+
+    @staticmethod
+    def collate_fn(batch):
+        img, label, path, shapes = zip(*batch)  # transposed
+        for i, l in enumerate(label):
+            l[:, 0] = i  # add target image index for build_targets()
+        return torch.stack(img, 0), torch.cat(label, 0), path, shapes
+
+
+def create_dataloader_and_dataset_for_yolo(
+    df,
+    set_label,
+    imgsz,
+    hyp_arg,
+    batch_size,
+    hyp=None,
+    augment=False,
+    shuffle=True,
+    nw=0,
+):
+
+    from torch.utils.data import DataLoader
+
+    dataset = YoloDataset(df, set_label, hyp_arg, img_size=imgsz, augment=augment)
+    batch_size = min(batch_size, len(dataset))
+
+    sampler = None  # distributed.DistributedSampler(dataset, shuffle=shuffle)
+
+    loader = DataLoader(
+        dataset,  # InfiniteDataLoader ?
+        batch_size=batch_size,
+        shuffle=shuffle and sampler is None,
+        num_workers=nw,  # doesnt work in Windows
+        sampler=sampler,
+        pin_memory=True,
+        collate_fn=YoloDataset.collate_fn,
+    )
+
+    return loader, dataset
+
+
 ###
 """END OF CUSTOM PART"""
