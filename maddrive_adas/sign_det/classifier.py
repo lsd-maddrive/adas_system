@@ -60,6 +60,17 @@ class EncoderBasedClassifier(AbstractSignClassifier):
         self,
         instances: list[DetectedInstance]
     ) -> list[tuple[str, float]]:
+        """Classify image batch.
+
+        Args:
+            instances (list[DetectedInstance]): List of DetectedInstance image
+            descriptions.
+
+        Returns:
+            list[tuple[str, float]]: List of tuple(sign, confidence)
+        """
+        if not instances:
+            return []
 
         # 2. crop img and make array from it
         imgs: list[np.array] = []
@@ -90,3 +101,17 @@ class EncoderBasedClassifier(AbstractSignClassifier):
             key = self._idx_to_key[sorted_dist_idxies[0]]
             nearest_sign.append((key, confidence))
         return nearest_sign
+
+    def classify(
+        self,
+        instance: DetectedInstance
+    ) -> tuple[str, float]:
+        """Classify a single DetectedInstance.
+
+        Args:
+            instance (DetectedInstance): DetectedInstance image description.
+
+        Returns:
+            tuple[str, float]: (sign, confidence)
+        """
+        return self.classify_batch([instance])[0]

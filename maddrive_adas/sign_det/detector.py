@@ -109,7 +109,7 @@ class YoloV5Detector(AbstractSignDetector):
         return ret_list
 
     @torch.no_grad()
-    def detect_batch(self, imgs: list[np.array]) -> list[list[np.array]]:
+    def detect_batch(self, imgs: list[np.array]) -> list[DetectedInstance]:
         """Returs list of subimages - detected signs.
 
         Return list is list of detected signs per each imgs element.
@@ -154,7 +154,7 @@ class YoloV5Detector(AbstractSignDetector):
 
         return ret_list
 
-    def detect(self, img: np.array) -> list[tuple[float, float, float, float]]:
+    def detect(self, img: np.array) -> DetectedInstance:
         """Detect sign on img.
 
         Args:

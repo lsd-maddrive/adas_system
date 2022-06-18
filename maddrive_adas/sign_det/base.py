@@ -130,7 +130,7 @@ class AbstractSignClassifier:
 
     def classify_batch(
         self,
-        imgs: list[np.array], RROI: list[list[float]]
+        instances: list[DetectedInstance]
     ) -> list[tuple[str, float]]:
         """Classify batch.
 
@@ -139,11 +139,11 @@ class AbstractSignClassifier:
             RROI (list[list[float]]): List of relative regions of interest.
 
         Returns:
-            list[tuple[str, float]]: List of results.
+            list[tuple[str, float]]: List of results: (sign, confidence).
         """
         raise NotImplementedError()
 
-    def classify(self, img: np.array, RROI: list[float]) -> list:
+    def classify(self, instance: DetectedInstance) -> list:
         raise NotImplementedError()
 
 
