@@ -149,7 +149,7 @@ class YoloV5Detector(AbstractSignDetector):
             di = DetectedInstance(img)
             for pred in tpreds:
                 di.add_abs_roi(pred[:4], pred[4])
-            di.show_img()
+            # di.show_img()
             ret_list.append(di)
 
         return ret_list

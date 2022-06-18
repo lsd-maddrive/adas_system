@@ -18,8 +18,7 @@ def get_model_and_img_size(
     if path_to_config:
         model_data = get_model_config(path_to_config)
     else:
-        # TODO: fix double convert
-        model_data = json.loads(json.loads(config_data))
+        model_data = json.loads(config_data)
 
     model = getattr(
         importlib.import_module('torchvision.models'),

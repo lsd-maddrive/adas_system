@@ -1,4 +1,3 @@
-import json
 
 import torch
 import numpy as np
@@ -38,18 +37,19 @@ class EncoderBasedClassifier(AbstractSignClassifier):
         self._device = device if device else torch.device(
             'cuda' if torch.cuda.is_available() else 'cpu')
 
-        model_dict: dict = torch.load(config_path, map_location=self._device)
+        model_dict: dict = torch.load(config_path, map_location=torch.device('cpu'))
         assert(all([key in model_dict.keys() for key in REQUIRED_ARCHIVE_KEYS])
                ), f'Verify model archive keys. It should contain {REQUIRED_ARCHIVE_KEYS}'
 
         self._model, self._img_size = get_model_and_img_size(config_data=model_dict['model_config'])
         self._model.load_state_dict(model_dict['model'])
+        self._model = self._model.to(self._device)
+
         self._transform, _ = get_minimal_and_augment_transforms(self._img_size)
 
         _centroid_location_dict: dict = path_to_centroid_location \
-            if path_to_centroid_location else json.loads(
-                json.loads(model_dict['centroid_location'])
-            )
+            if path_to_centroid_location else model_dict['centroid_location']
+
         self._idx_to_key: list = {idx: k for idx, k in enumerate(_centroid_location_dict.keys())}
         self._centroid_location: torch.Tensor = torch.stack(
             [torch.Tensor(v) for v in _centroid_location_dict.values()]
