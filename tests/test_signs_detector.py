@@ -28,30 +28,32 @@ composer: AbstractComposer = BasicSignsDetectorAndClassifier(
     classifier=classifier,
     detector=detector
 )
-# def test_detector_base_execution_img1(detector_test_image1):
-#     detections = detector.detect(detector_test_image1)
-#     detections.show_img()
-#     assert len(detections.confs) == 3  # in fact 2
 
 
-# def test_detector_base_execution_img2(detector_test_image2):
-#     detections = detector.detect(detector_test_image2)
-#     detections.show_img()
-#     assert len(detections.confs) == 3  # in fact 2
+def test_detector_base_execution_img1(detector_test_image1):
+    detections = detector.detect(detector_test_image1)
+    detections.show_img()
+    assert len(detections.confs) == 3  # in fact 2
 
 
-# def test_detector_base_execution_batch(
-#     detector_test_image1,
-#     detector_test_image2
-# ):
-#     detections = detector.detect_batch(
-#         [detector_test_image1, detector_test_image2])
-#     assert len(detections) == 2  # in fact 2
+def test_detector_base_execution_img2(detector_test_image2):
+    detections = detector.detect(detector_test_image2)
+    detections.show_img()
+    assert len(detections.confs) == 3  # in fact 2
 
 
-# def test_detector_base_execution_batch_empty():
-#     detections = detector.detect_batch([])
-#     assert len(detections) == 0  #
+def test_detector_base_execution_batch(
+    detector_test_image1,
+    detector_test_image2
+):
+    detections = detector.detect_batch(
+        [detector_test_image1, detector_test_image2])
+    assert len(detections) == 2  # in fact 2
+
+
+def test_detector_base_execution_batch_empty():
+    detections = detector.detect_batch([])
+    assert len(detections) == 0  #
 
 
 def test_classifier_base_2_1_1(classifier_test_image_2_1_1):
