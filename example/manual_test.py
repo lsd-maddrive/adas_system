@@ -11,7 +11,7 @@ from maddrive_adas.sign_det.composer import BasicSignsDetectorAndClassifier
 
 PROJECT_ROOT = Path('.')
 DETECTOR_ARCHIVE = PROJECT_ROOT / 'maddrive_adas' / 'sign_det' / 'detector_config_img_size'
-CLASSIFIER_ARCHIVE = (PROJECT_ROOT / './SignDetectorAndClassifier/notebooks/saved_model')
+CLASSIFIER_ARCHIVE = (PROJECT_ROOT / './SignDetectorAndClassifier/data/saved_model')
 
 c: AbstractSignClassifier = EncoderBasedClassifier(
     config_path=str(CLASSIFIER_ARCHIVE)
@@ -48,7 +48,7 @@ def test_classifier():
     for di in classify_batch_arg:
         di.add_rel_roi([0., 0, 1., 1.], 1.)
         # di.show_img()
-
+    # TODO: fix unexpected behaviour
     sign = c.classify_batch(classify_batch_arg)
 
     return sign
@@ -72,7 +72,7 @@ def test_composer():
 
 
 if __name__ == '__main__':
-    # a = test_detector()
+    a = test_detector()
     b = test_classifier()
     # c = test_composer()
     assert False, 'Check opened windows or/and fcns return values'
