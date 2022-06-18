@@ -1,19 +1,15 @@
 .venv/
 .git/
 nohup.out
-!SignDetectorAndClassifier/**
-SignDetectorAndClassifier/data/**
-SignDetectorAndClassifier/src/**
-SignDetectorAndClassifier/src_old/**
+
+SignDetectorAndClassifier/**
+# !.SignDetectorAndClassifier/notebooks/*.ipynb
+
 new 1.txt
 **/*.ipynb_checkpoints/
 */.ipynb_checkpoints/*.ipynb
 **/__pycache__/
 
-!SignDetectorAndClassifier/notebooks/*.ipynb
-
-!notebooks/YoloV5Last.pt
-!notebooks/nt_helper/*
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
