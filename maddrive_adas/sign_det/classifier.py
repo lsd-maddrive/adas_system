@@ -44,6 +44,7 @@ class EncoderBasedClassifier(AbstractSignClassifier):
         self._model, self._img_size = get_model_and_img_size(config_data=model_dict['model_config'])
         self._model.load_state_dict(model_dict['model'])
         self._model = self._model.to(self._device)
+        self._model.eval()
 
         self._transform, _ = get_minimal_and_augment_transforms(self._img_size)
 
@@ -79,7 +80,7 @@ class EncoderBasedClassifier(AbstractSignClassifier):
                 imgs.append(instance.get_cropped_img(idx))
 
         # 3. pass it to model
-        transformed_imgs = torch.stack([self._transform(image=img)['image'] for img in imgs])
+        transformed_imgs = torch.stack([self._transform(image=img)['image'] / 255 for img in imgs])
         transformed_imgs = transformed_imgs.to(self._device, dtype=torch.float32)
         model_pred = self._model(transformed_imgs)
 
