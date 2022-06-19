@@ -28,9 +28,9 @@ def test_detector():
     img1 = imread_rgb(DATA_DIR / 'custom_test.png')
     img2 = imread_rgb(DATA_DIR / 'test_image.png')
 
-    sign = d.detect_batch([img1, img2])
+    signs = d.detect_batch([img1, img2])
 
-    return sign
+    return signs
 
 
 def test_classifier():
