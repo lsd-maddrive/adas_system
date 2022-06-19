@@ -1163,7 +1163,7 @@ signedtoken = ["cryptography (>=3.0.0)", "pyjwt (>=2.0.0,<3)"]
 name = "opencv-python"
 version = "4.6.0.66"
 description = "Wrapper package for OpenCV python bindings."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.6"
 
@@ -1179,7 +1179,7 @@ numpy = [
 name = "opencv-python-headless"
 version = "4.6.0.66"
 description = "Wrapper package for OpenCV python bindings."
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.6"
 
@@ -2183,7 +2183,7 @@ python-versions = ">=3.4"
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.10,<3.11"
-content-hash = "2a79394d046920aa4891c704385f61ebe99b1cf41ff8456c67f7ea4e70162d5d"
+content-hash = "3367427334762c128caab9c3c3629ddce1fc9b6dfc58cc95584c58ea266c5d96"
 
 [metadata.files]
 absl-py = [
