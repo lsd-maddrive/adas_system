@@ -1,10 +1,70 @@
-import os
+from pathlib import Path
 
 import pytest
+import numpy as np
+
+from maddrive_adas.utils import fs
+from maddrive_adas.sign_det.base import DetectedInstance
 
 
 @pytest.fixture
 def test_data_dpath():
-    current_dpath = os.path.abspath(os.path.join(__file__))
-    test_data_dpath = os.path.join(current_dpath, "test_data")
+    test_data_dpath = Path(__file__).parent / "test_data"
     return test_data_dpath
+
+
+@pytest.fixture
+def detector_test_image1(test_data_dpath: Path) -> np.array:
+    img_fpath = test_data_dpath / 'test_image.png'
+    img = fs.imread_rgb(img_fpath)
+    return img
+
+
+@pytest.fixture
+def detector_test_image2(test_data_dpath: Path) -> np.array:
+    img_fpath = test_data_dpath / 'custom_test.png'
+    img = fs.imread_rgb(img_fpath)
+    return img
+
+
+@pytest.fixture
+def classifier_test_image_2_1_1(test_data_dpath: Path) -> DetectedInstance:
+    img_fpath = test_data_dpath / '2.1_1.png'
+    img = fs.imread_rgb(img_fpath)
+    d = DetectedInstance(img)
+    d.add_rel_roi([0., 0., 1., 1.], 1.)
+    return d
+
+
+@pytest.fixture
+def classifier_test_image_2_1_2(test_data_dpath: Path) -> DetectedInstance:
+    img_fpath = test_data_dpath / '2.1_2.png'
+    img = fs.imread_rgb(img_fpath)
+    d = DetectedInstance(img)
+    d.add_rel_roi([0., 0., 1., 1.], 1.)
+    return d
+
+
+@pytest.fixture
+def classifier_test_image_5_16(test_data_dpath: Path) -> DetectedInstance:
+    img_fpath = test_data_dpath / '5.16.png'
+    img = fs.imread_rgb(img_fpath)
+    d = DetectedInstance(img)
+    d.add_rel_roi([0., 0., 1., 1.], 1.)
+    return d
+
+
+@pytest.fixture
+def classifier_test_image_5_19(test_data_dpath: Path) -> DetectedInstance:
+    img_fpath = test_data_dpath / '5.19.png'
+    img = fs.imread_rgb(img_fpath)
+    d = DetectedInstance(img)
+    d.add_rel_roi([0., 0., 1., 1.], 1.)
+    return d
+
+
+@pytest.fixture
+def classifier_test_image_7_4(test_data_dpath: Path) -> np.array:
+    img_fpath = test_data_dpath / '7_4.png'
+    img = fs.imread_rgb(img_fpath)
+    return img

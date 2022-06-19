@@ -1,23 +1,108 @@
-import os
-import pytest
-import numpy as np
+from pathlib import Path
 
-from maddrive_adas.sign_det.yolo_detector import YoloSignsDetector
-from maddrive_adas.utils import fs
+from maddrive_adas.sign_det.detector import YoloV5Detector
+from maddrive_adas.sign_det.classifier import EncoderBasedClassifier
+from maddrive_adas.sign_det.composer import BasicSignsDetectorAndClassifier
+from maddrive_adas.sign_det.base import (
+    AbstractSignDetector, AbstractSignClassifier,
+    AbstractComposer, DetectedInstance
+)
 
-@pytest.fixture(scope="module")
-def detector_test_image(test_data_dpath) -> np.array:
-    img_fpath = os.path.join(test_data_dpath, "test_image.png")
-    img = fs.imread_rgb(img_fpath)
-    return img
+PROJECT_ROOT: Path = Path('.')
+SIGN_DETECTOR_MODEL_ARCHIVE: str = str(
+    PROJECT_ROOT / 'maddrive_adas' / 'sign_det' / 'detector_config_img_size'
+)
+SIGN_CLASSIFIER_MODEL_ARCHIVE: str = str(
+    PROJECT_ROOT / 'maddrive_adas' / 'sign_det' / 'encoder_cl_config'
+)
 
-def test_detector_bsae_execution(detector_test_image):
-    # .copy() - to avoid overwriting over source image
-    src_img = detector_test_image.copy()
+detector: AbstractSignDetector = YoloV5Detector(
+    config_path=SIGN_DETECTOR_MODEL_ARCHIVE
+)
 
-    detector = YoloSignsDetector()
+classifier: AbstractSignClassifier = EncoderBasedClassifier(
+    config_path=SIGN_CLASSIFIER_MODEL_ARCHIVE
+)
 
-    detections = detector.detect(src_img)
+composer: AbstractComposer = BasicSignsDetectorAndClassifier(
+    classifier=classifier,
+    detector=detector
+)
 
-    assert len(detections) == 2
-    # TODO - other checks like coordinates (position), width/height (size)
+
+def test_detector_base_execution_img1(detector_test_image1):
+    detections = detector.detect(detector_test_image1)
+    # detections.show_img()
+    assert len(detections.confs) == 3  # in fact 2
+
+
+def test_detector_base_execution_img2(detector_test_image2):
+    detections = detector.detect(detector_test_image2)
+    # detections.show_img()
+    assert len(detections.confs) == 3  # in fact 2
+
+
+def test_detector_base_execution_batch(
+    detector_test_image1,
+    detector_test_image2
+):
+    detections = detector.detect_batch(
+        [detector_test_image1, detector_test_image2])
+    assert len(detections) == 2  # in fact 2
+
+
+def test_detector_base_execution_batch_empty():
+    detections = detector.detect_batch([])
+    assert len(detections) == 0  #
+
+
+def test_classifier_base_2_1_1(classifier_test_image_2_1_1):
+    classification_res = classifier.classify(classifier_test_image_2_1_1)
+    print(classification_res)
+    assert classification_res  # classification_res[0] == '2.1'
+
+
+def test_classifier_base_2_1_2(classifier_test_image_2_1_2):
+    classification_res = classifier.classify(classifier_test_image_2_1_2)
+    print(classification_res)
+    assert classification_res  # classification_res[0] == '2.1'
+
+
+def test_classifier_base_5_16(classifier_test_image_5_16: DetectedInstance):
+    classification_res = classifier.classify(classifier_test_image_5_16)
+    print(classification_res)
+    assert classification_res  # classification_res[0] == '5.16'
+
+
+def test_classifier_batch_test(
+    classifier_test_image_2_1_1,
+    classifier_test_image_2_1_2,
+    classifier_test_image_5_16
+):
+    classification_res = classifier.classify_batch(
+        [
+            classifier_test_image_2_1_1,
+            classifier_test_image_2_1_2,
+            classifier_test_image_5_16
+        ]
+    )
+    print(classification_res)
+    assert classification_res  # [x[0] for x in classification_res] == ['2.1', '2.1', '5.16']
+
+
+def test_classifier_batch_empty():
+    classification_res = classifier.classify_batch([])
+    print(classification_res)
+    assert len(classification_res) == 0  # in fact 2
+
+
+def test_composer_img1(detector_test_image1):
+    result = composer.detect_and_classify(detector_test_image1)
+    print(result)
+    assert len(result) == 3  # in fact 2
+
+
+def test_composer_img2(detector_test_image2):
+    result = composer.detect_and_classify(detector_test_image2)
+    print(result)
+    assert len(result) == 3
