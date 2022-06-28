@@ -34,15 +34,19 @@ class DetectedInstance:  # TODO: remove detected sign class?
             w * roi[3],
         ])))
 
-    def get_rel_roi(self, idx):  # TODO: ret confidence
+    def get_rel_roi(self, idx):
+        """Get relative ROI and confidence.
+        """
         try:
-            return self.rel_rois[idx]
+            return self.rel_rois[idx], self.confs[idx]
         except IndexError:
             assert False, 'Wrong index'
 
-    def get_abs_roi(self, idx):
+    def get_abs_roi(self, idx) -> tuple[list, float]:
+        """Get absolute ROI and confidence.
+        """
         try:
-            return self.abs_rois[idx]
+            return self.abs_rois[idx], self.confs[idx]
         except IndexError:
             assert False, 'Wrong index'
 
