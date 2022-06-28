@@ -101,11 +101,10 @@ class EncoderBasedClassifier(AbstractSignClassifier):
             # TODO: fix confidence
             # pick 2 nearest.
             # get conf by (len_to_nearest) / (len_to_nearest + len_to_second_nearest)
-            # confidence = (2 * dist_dict[sorted_dist_idxies[0]] /
-            #               (dist_dict[sorted_dist_idxies[0]] + dist_dict[sorted_dist_idxies[1]]))
-            confidence = 1
+            confidence = (2 * dist_dict[sorted_dist_idxies[0]] / (
+                dist_dict[sorted_dist_idxies[0]] + dist_dict[sorted_dist_idxies[1]]))
             key = self._idx_to_key[sorted_dist_idxies[0]]
-            nearest_sign.append((key, confidence))
+            nearest_sign.append((key, float(confidence)))
         return nearest_sign
 
     def classify(

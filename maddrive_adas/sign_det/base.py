@@ -14,24 +14,24 @@ class DetectedInstance:  # TODO: remove detected sign class?
 
     def add_abs_roi(self, roi: list[int], conf: float):
         self.abs_rois.append(list(map(int, roi)))
-        w, h, *_ = self.img.shape
+        h, w, *_ = self.img.shape
         self.confs.append(conf)
         self.rel_rois.append([
-            roi[0] / h,
-            roi[1] / w,
-            roi[2] / h,
-            roi[3] / w,
+            roi[0] / w,
+            roi[1] / h,
+            roi[2] / w,
+            roi[3] / h,
         ])
 
     def add_rel_roi(self, roi: list[int], conf: float):
         self.rel_rois.append(roi)
-        w, h, *_ = self.img.shape
+        h, w, *_ = self.img.shape
         self.confs.append(conf)
         self.abs_rois.append(list(map(int, [
-            h * roi[0],
-            w * roi[1],
-            h * roi[2],
-            w * roi[3],
+            w * roi[0],
+            h * roi[1],
+            w * roi[2],
+            h * roi[3],
         ])))
 
     def get_rel_roi(self, idx):
@@ -82,16 +82,14 @@ class DetectedInstance:  # TODO: remove detected sign class?
         """Get cropped ROID image.
 
         Args:
-            roi_idx (_type_): index of ROI.
+            roi_idx (int): index of ROI.
 
         Returns:
             np.array: cropped image.
         """
-        rroi, _ = self.get_rel_roi(roi_idx)
-        w, h, *_ = self.img.shape
         return self.img[
-            int(rroi[0] * w): int(rroi[2] * w),
-            int(rroi[1] * h): int(rroi[3] * h),
+            self.abs_rois[roi_idx][1]: self.abs_rois[roi_idx][3],
+            self.abs_rois[roi_idx][0]: self.abs_rois[roi_idx][2]
         ]
 
 
