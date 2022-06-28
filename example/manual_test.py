@@ -73,5 +73,5 @@ def test_composer():
 if __name__ == '__main__':
     a = test_detector()
     b = test_classifier()
-    # c = test_composer()
+    c = test_composer()
     assert False, 'Check opened windows or/and fcns return values'

@@ -71,10 +71,23 @@ class DetectedInstance:  # TODO: remove detected sign class?
         cv2.waitKey(3)
 
     def get_roi_count(self) -> int:
+        """Get ROI count.
+
+        Returns:
+            int: ROI count.
+        """
         return len(self.rel_rois)
 
-    def get_cropped_img(self, roi_idx) -> np.array:
-        rroi = self.get_rel_roi(roi_idx)
+    def get_cropped_img(self, roi_idx: int) -> np.array:
+        """Get cropped ROID image.
+
+        Args:
+            roi_idx (_type_): index of ROI.
+
+        Returns:
+            np.array: cropped image.
+        """
+        rroi, _ = self.get_rel_roi(roi_idx)
         w, h, *_ = self.img.shape
         return self.img[
             int(rroi[0] * w): int(rroi[2] * w),
