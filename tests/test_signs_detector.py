@@ -99,10 +99,18 @@ def test_classifier_batch_empty():
 def test_composer_img1(detector_test_image1):
     result = composer.detect_and_classify(detector_test_image1)
     print(result)
-    assert len(result) == 3  # in fact 2
+    assert isinstance(result, tuple)
 
 
 def test_composer_img2(detector_test_image2):
     result = composer.detect_and_classify(detector_test_image2)
     print(result)
-    assert len(result) == 3
+    assert isinstance(result, tuple)
+
+
+def test_composer_batch(detector_test_image1, detector_test_image2):
+    result = composer.detect_and_classify_batch(
+        [detector_test_image1, detector_test_image2]
+    )
+    print(result)
+    assert len(result) == 2

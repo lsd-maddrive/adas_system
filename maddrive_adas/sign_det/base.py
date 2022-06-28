@@ -112,28 +112,28 @@ class AbstractSignDetector:
     """Base Detector.
     """
 
-    def __init__(*args, **kwargs) -> None:  # TODO: сделать общий конструктов?
+    def __init__(*args, **kwargs) -> None:  # TODO: сделать общий конструктор?
         raise NotImplementedError()
 
-    def detect(self, img: np.array) -> dict[str, list]:
+    def detect(self, img: np.array) -> DetectedInstance:
         """Detect signs on image list.
 
         Args:
             imgs (np.array): np.array images.
 
         Returns:
-            list[dict]: dicts per image, that contains abs. coords, relative coords and confidence.
+            DetectedInstance: Detected signs as DetectedInstance.
         """
         raise NotImplementedError()
 
-    def detect_batch(self, imgs: list[np.array]) -> list[dict[str, list]]:
+    def detect_batch(self, imgs: list[np.array]) -> list[DetectedInstance]:
         """Detect signs on image list.
 
         Args:
             imgs (list[np.array]): list of np.array images.
 
         Returns:
-            list[dict]: dicts per image, that contains abs. coords, relative coords and confidence.
+            list[DetectedInstance]: List of Detected signs as DetectedInstance's.
         """
         raise NotImplementedError()
 
@@ -156,11 +156,11 @@ class AbstractSignClassifier:
             RROI (list[list[float]]): List of relative regions of interest.
 
         Returns:
-            list[tuple[str, float]]: List of results: (sign, confidence).
+            list[tuple[str, float]]: Unzipped list of results: (sign, confidence).
         """
         raise NotImplementedError()
 
-    def classify(self, instance: DetectedInstance) -> list:
+    def classify(self, instance: DetectedInstance) -> tuple[str, float]:
         raise NotImplementedError()
 
 
@@ -178,10 +178,10 @@ class AbstractComposer:
         """
         raise NotImplementedError()
 
-    # TODO: fix my name please
+    # TODO: fix my name and return types please
     def detect_and_classify_batch(self, imgs: list[np.array]) -> None:  # list[tuple[str, float]]:
         raise NotImplementedError()
 
-    # TODO: fix my name please
+    # TODO: same
     def detect_and_classify(self, imgs: list[np.array]) -> None:  # list[tuple[str, float]]:
         raise NotImplementedError()
