@@ -52,8 +52,11 @@ class DetectedInstance:  # TODO: remove detected sign class?
         except IndexError:
             assert False, 'Wrong index'
 
-    def show_img(self):
+    def _show_img(self):
         """Show image with detections.
+
+        This method requires development dependencies or not
+        headless OpenCV2
         """
         img_ = self.img.copy()
         for idx, abs_roi in enumerate(self.abs_rois):

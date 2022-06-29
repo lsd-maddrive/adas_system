@@ -29,7 +29,6 @@ def test_classifier():
     ]
     for di in classify_batch_arg:
         di.add_rel_roi([0., 0, 1., 1.], 1.)
-        # di.show_img()
 
     sign_solo = c.classify_batch(classify_batch_arg)
 
