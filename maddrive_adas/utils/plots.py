@@ -13,7 +13,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sn
+
 import torch
 from PIL import Image, ImageDraw, ImageFont
 
@@ -444,6 +444,7 @@ def plot_val_study(
 @try_except  # known issue https://github.com/ultralytics/yolov5/issues/5395
 @Timeout(30)  # known issue https://github.com/ultralytics/yolov5/issues/5611
 def plot_labels(labels, names=(), save_dir=Path("")):
+    import seaborn as sn
     # plot dataset labels
     LOGGER.info(f"Plotting labels to {save_dir / 'labels.jpg'}... ")
     c, b = labels[:, 0], labels[:, 1:].transpose()  # classes, boxes
