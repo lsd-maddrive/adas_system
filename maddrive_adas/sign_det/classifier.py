@@ -66,7 +66,7 @@ class EncoderBasedClassifier(AbstractSignClassifier):
     @torch.no_grad()
     def classify_batch(
         self,
-        instances: List[DetectedInstance]
+        detected_instances: List[DetectedInstance]
     ) -> List[Tuple[str, float]]:
         """Classify image batch.
 
@@ -77,15 +77,22 @@ class EncoderBasedClassifier(AbstractSignClassifier):
         Returns:
             List[Tuple[str, float]]: List of tuple(sign, confidence)
         """
-        if not instances:
+        if not detected_instances:
             return []
 
         # 2. crop img and make array from it
         # TODO: make generator from DetectedInstance aka yield
         imgs: List[np.array] = []
-        for instance in instances:
-            for idx in range(0, instance.get_roi_count()):
-                imgs.append(instance.get_cropped_img(idx))
+        for detected_instance in detected_instances:
+            if isinstance(detected_instance, DetectedInstance):
+                for idx in range(0, detected_instance.get_roi_count()):
+                    imgs.append(detected_instance.get_cropped_img(idx))
+            elif isinstance(detected_instance, np.ndarray):
+                print('Passed for classification data is not isntance of DetectedInstacnce')
+                print("It's np.array, so let's try to raw append full image for classification")
+                imgs.append(detected_instance)
+            else:
+                raise ValueError('Wrong instance type')
 
         # 3. pass it to model
         transformed_imgs = torch.stack([self._transform(image=img)['image'] / 255 for img in imgs])
@@ -98,7 +105,7 @@ class EncoderBasedClassifier(AbstractSignClassifier):
         # 5. rearrange to detections per DetectedInstance
         res_per_detected_instance: List[DetectedInstance, List[Tuple[str, float]]] = []
         accum: int = 0
-        for d in instances:
+        for d in detected_instances:
             roi_count: int = d.get_roi_count()
             res_per_detected_instance.append(
                 (
