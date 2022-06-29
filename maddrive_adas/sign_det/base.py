@@ -25,7 +25,7 @@ class DetectedInstance:  # TODO: remove detected sign class?
             roi[3] / h,
         ])
 
-    def add_rel_roi(self, roi: List[int], conf: float):
+    def add_rel_roi(self, roi: List[float], conf: float):
         self.rel_rois.append(roi)
         h, w, *_ = self.img.shape
         self.confs.append(conf)
@@ -118,11 +118,11 @@ class AbstractSignDetector:
     def __init__(*args, **kwargs) -> None:  # TODO: сделать общий конструктор?
         raise NotImplementedError()
 
-    def detect(self, img: np.array) -> DetectedInstance:
+    def detect(self, img: np.ndarray) -> DetectedInstance:
         """Detect signs on image list.
 
         Args:
-            imgs (np.array): np.array images.
+            imgs (np.ndarray): np.array images.
 
         Returns:
             DetectedInstance: Detected signs as DetectedInstance.

@@ -30,9 +30,10 @@ def test_classifier():
     for di in classify_batch_arg:
         di.add_rel_roi([0., 0, 1., 1.], 1.)
 
-    sign_solo = c.classify_batch(classify_batch_arg)
+    sign_multi = c.classify_batch(classify_batch_arg)
+    sign_img = c.classify_batch([img1, img2])
 
-    return sign_solo
+    return sign_multi, sign_img
 
 
 if __name__ == '__main__':

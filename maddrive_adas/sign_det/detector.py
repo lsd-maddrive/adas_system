@@ -155,11 +155,11 @@ class YoloV5Detector(AbstractSignDetector):
 
         return ret_list
 
-    def detect(self, img: np.array) -> DetectedInstance:
+    def detect(self, img: np.ndarray) -> DetectedInstance:
         """Detect sign on img.
 
         Args:
-            img (np.array): Input image.
+            img (np.ndarray): Input image.
 
         Returns:
             List[Tuple[float, float, float, float]]: List of relative sign coordinates.

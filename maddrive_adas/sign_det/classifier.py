@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 import json
 
@@ -67,7 +67,7 @@ class EncoderBasedClassifier(AbstractSignClassifier):
     def classify_batch(
         self,
         detected_instances: List[DetectedInstance]
-    ) -> List[Tuple[str, float]]:
+    ) -> List[Tuple[DetectedInstance, Tuple[str, float]]]:
         """Classify image batch.
 
         Args:
@@ -88,8 +88,8 @@ class EncoderBasedClassifier(AbstractSignClassifier):
                 for idx in range(0, detected_instance.get_roi_count()):
                     imgs.append(detected_instance.get_cropped_img(idx))
             elif isinstance(detected_instance, np.ndarray):
-                print('Passed for classification data is not isntance of DetectedInstacnce')
-                print("It's np.array, so let's try to raw append full image for classification")
+                print('[!] Passed for classification data is not isntance of DetectedInstacnce')
+                print("[!] It's np.array, so let's try to raw append full image for classification")
                 imgs.append(detected_instance)
             else:
                 raise ValueError('Wrong instance type')
@@ -106,17 +106,29 @@ class EncoderBasedClassifier(AbstractSignClassifier):
         res_per_detected_instance: List[DetectedInstance, List[Tuple[str, float]]] = []
         accum: int = 0
         for d in detected_instances:
-            roi_count: int = d.get_roi_count()
-            res_per_detected_instance.append(
-                (
-                    d,
-                    [x for x in sign_and_confs_per_image[accum: accum + roi_count]]
+            if isinstance(d, DetectedInstance):
+                roi_count: int = d.get_roi_count()
+                res_per_detected_instance.append(
+                    (
+                        d,
+                        [x for x in sign_and_confs_per_image[accum: accum + roi_count]]
+                    )
                 )
-            )
-            accum += roi_count
+                accum += roi_count
+            elif isinstance(d, np.ndarray):
+                _detected_instance = DetectedInstance(d)
+                conf = sign_and_confs_per_image[accum: accum + 1]
+                _detected_instance.add_rel_roi([0., 0., 1., 1.], conf)
+                res_per_detected_instance.append(
+                    (
+                        _detected_instance,
+                        conf
+                    )
+                )
+                accum += 1
         return res_per_detected_instance
 
-    def _get_sign_and_confidence(self, embs):  # p3.8 cannot do is -> List[str, float]:
+    def _get_sign_and_confidence(self, embs) -> List[Union[str, float]]:
         nearest_sign = []
         for emb in embs:
             dist = (emb - self._centroid_location).pow(2).sum(-1).sqrt()
