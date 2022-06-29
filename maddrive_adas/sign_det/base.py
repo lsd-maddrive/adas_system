@@ -14,35 +14,39 @@ class DetectedInstance:  # TODO: remove detected sign class?
 
     def add_abs_roi(self, roi: list[int], conf: float):
         self.abs_rois.append(list(map(int, roi)))
-        w, h, *_ = self.img.shape
+        h, w, *_ = self.img.shape
         self.confs.append(conf)
         self.rel_rois.append([
-            roi[0] / h,
-            roi[1] / w,
-            roi[2] / h,
-            roi[3] / w,
+            roi[0] / w,
+            roi[1] / h,
+            roi[2] / w,
+            roi[3] / h,
         ])
 
     def add_rel_roi(self, roi: list[int], conf: float):
         self.rel_rois.append(roi)
-        w, h, *_ = self.img.shape
+        h, w, *_ = self.img.shape
         self.confs.append(conf)
         self.abs_rois.append(list(map(int, [
-            h * roi[0],
-            w * roi[1],
-            h * roi[2],
-            w * roi[3],
+            w * roi[0],
+            h * roi[1],
+            w * roi[2],
+            h * roi[3],
         ])))
 
-    def get_rel_roi(self, idx):  # TODO: ret confidence
+    def get_rel_roi(self, idx):
+        """Get relative ROI and confidence.
+        """
         try:
-            return self.rel_rois[idx]
+            return self.rel_rois[idx], self.confs[idx]
         except IndexError:
             assert False, 'Wrong index'
 
-    def get_abs_roi(self, idx):
+    def get_abs_roi(self, idx) -> tuple[list, float]:
+        """Get absolute ROI and confidence.
+        """
         try:
-            return self.abs_rois[idx]
+            return self.abs_rois[idx], self.confs[idx]
         except IndexError:
             assert False, 'Wrong index'
 
@@ -67,14 +71,25 @@ class DetectedInstance:  # TODO: remove detected sign class?
         cv2.waitKey(3)
 
     def get_roi_count(self) -> int:
+        """Get ROI count.
+
+        Returns:
+            int: ROI count.
+        """
         return len(self.rel_rois)
 
-    def get_cropped_img(self, roi_idx) -> np.array:
-        rroi = self.get_rel_roi(roi_idx)
-        w, h, *_ = self.img.shape
+    def get_cropped_img(self, roi_idx: int) -> np.array:
+        """Get cropped ROID image.
+
+        Args:
+            roi_idx (int): index of ROI.
+
+        Returns:
+            np.array: cropped image.
+        """
         return self.img[
-            int(rroi[0] * w): int(rroi[2] * w),
-            int(rroi[1] * h): int(rroi[3] * h),
+            self.abs_rois[roi_idx][1]: self.abs_rois[roi_idx][3],
+            self.abs_rois[roi_idx][0]: self.abs_rois[roi_idx][2]
         ]
 
 
@@ -95,28 +110,28 @@ class AbstractSignDetector:
     """Base Detector.
     """
 
-    def __init__(*args, **kwargs) -> None:  # TODO: сделать общий конструктов?
+    def __init__(*args, **kwargs) -> None:  # TODO: сделать общий конструктор?
         raise NotImplementedError()
 
-    def detect(self, img: np.array) -> dict[str, list]:
+    def detect(self, img: np.array) -> DetectedInstance:
         """Detect signs on image list.
 
         Args:
             imgs (np.array): np.array images.
 
         Returns:
-            list[dict]: dicts per image, that contains abs. coords, relative coords and confidence.
+            DetectedInstance: Detected signs as DetectedInstance.
         """
         raise NotImplementedError()
 
-    def detect_batch(self, imgs: list[np.array]) -> list[dict[str, list]]:
+    def detect_batch(self, imgs: list[np.array]) -> list[DetectedInstance]:
         """Detect signs on image list.
 
         Args:
             imgs (list[np.array]): list of np.array images.
 
         Returns:
-            list[dict]: dicts per image, that contains abs. coords, relative coords and confidence.
+            list[DetectedInstance]: List of Detected signs as DetectedInstance's.
         """
         raise NotImplementedError()
 
@@ -139,11 +154,11 @@ class AbstractSignClassifier:
             RROI (list[list[float]]): List of relative regions of interest.
 
         Returns:
-            list[tuple[str, float]]: List of results: (sign, confidence).
+            list[tuple[str, float]]: Unzipped list of results: (sign, confidence).
         """
         raise NotImplementedError()
 
-    def classify(self, instance: DetectedInstance) -> list:
+    def classify(self, instance: DetectedInstance) -> tuple[str, float]:
         raise NotImplementedError()
 
 
@@ -161,10 +176,10 @@ class AbstractComposer:
         """
         raise NotImplementedError()
 
-    # TODO: fix my name please
+    # TODO: fix my name and return types please
     def detect_and_classify_batch(self, imgs: list[np.array]) -> None:  # list[tuple[str, float]]:
         raise NotImplementedError()
 
-    # TODO: fix my name please
+    # TODO: same
     def detect_and_classify(self, imgs: list[np.array]) -> None:  # list[tuple[str, float]]:
         raise NotImplementedError()
