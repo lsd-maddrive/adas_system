@@ -1,3 +1,5 @@
+from typing import List, Tuple
+
 import json
 
 import torch
@@ -64,22 +66,22 @@ class EncoderBasedClassifier(AbstractSignClassifier):
     @torch.no_grad()
     def classify_batch(
         self,
-        instances: list[DetectedInstance]
-    ) -> list[tuple[str, float]]:
+        instances: List[DetectedInstance]
+    ) -> List[Tuple[str, float]]:
         """Classify image batch.
 
         Args:
-            instances (list[DetectedInstance]): List of DetectedInstance image
+            instances (List[DetectedInstance]): List of DetectedInstance image
             descriptions.
 
         Returns:
-            list[tuple[str, float]]: List of tuple(sign, confidence)
+            List[Tuple[str, float]]: List of tuple(sign, confidence)
         """
         if not instances:
             return []
 
         # 2. crop img and make array from it
-        imgs: list[np.array] = []
+        imgs: List[np.array] = []
         for instance in instances:
             for idx in range(0, instance.get_roi_count()):
                 imgs.append(instance.get_cropped_img(idx))
@@ -92,7 +94,7 @@ class EncoderBasedClassifier(AbstractSignClassifier):
         # 4. get nearest centroid for all img in imgs
         return self._get_nearest_centroids(model_pred)
 
-    def _get_nearest_centroids(self, embs) -> list[str]:
+    def _get_nearest_centroids(self, embs) -> List[str]:
         nearest_sign = []
         for emb in embs:
             dist = (emb - self._centroid_location).pow(2).sum(-1).sqrt()
@@ -110,13 +112,13 @@ class EncoderBasedClassifier(AbstractSignClassifier):
     def classify(
         self,
         instance: DetectedInstance
-    ) -> tuple[str, float]:
+    ) -> Tuple[str, float]:
         """Classify a single DetectedInstance.
 
         Args:
             instance (DetectedInstance): DetectedInstance image description.
 
         Returns:
-            tuple[str, float]: (sign, confidence)
+            Tuple[str, float]: (sign, confidence)
         """
         return self.classify_batch([instance])[0]

@@ -1,3 +1,5 @@
+from typing import List, Tuple
+
 import torch
 import numpy as np
 
@@ -78,7 +80,7 @@ class YoloV5Detector(AbstractSignDetector):
         multi_label=False,
         labels=(),
         max_det=300,
-    ) -> list[dict]:    # TODO: fix annotation
+    ) -> List[dict]:    # TODO: fix annotation
 
         pred = non_max_suppression(
             pred,
@@ -91,10 +93,10 @@ class YoloV5Detector(AbstractSignDetector):
             max_det=max_det,
         )
 
-        ret_list: list[DetectedInstance] = []
+        ret_list: List[DetectedInstance] = []
 
         for detections, img_size in zip(pred, source_img_size):
-            detect_info: list[tuple[list[int], float]] = []
+            detect_info: List[Tuple[List[int], float]] = []
             if len(detections):
                 detections[:, :4] = scale_coords(
                     nn_img_size, detections[:, :4], img_size
@@ -109,7 +111,7 @@ class YoloV5Detector(AbstractSignDetector):
         return ret_list
 
     @torch.no_grad()
-    def detect_batch(self, imgs: list[np.array]) -> list[DetectedInstance]:
+    def detect_batch(self, imgs: List[np.array]) -> List[DetectedInstance]:
         """Returs list of subimages - detected signs.
 
         Return list is list of detected signs per each imgs element.
@@ -123,7 +125,7 @@ class YoloV5Detector(AbstractSignDetector):
         if len(imgs) == 0:
             return []
 
-        original_img_size: list[int] = []
+        original_img_size: List[int] = []
         for img in imgs:
             original_img_size.append((img.shape[0], img.shape[1]))
 
@@ -143,7 +145,7 @@ class YoloV5Detector(AbstractSignDetector):
             max_det=10)
 
         # transform to DetectedInstance
-        ret_list: list[DetectedInstance] = []
+        ret_list: List[DetectedInstance] = []
         assert len(translated_preds) == len(imgs), 'Array len mismatch'
         for img, tpreds in zip(imgs, translated_preds):
             di = DetectedInstance(img)
@@ -161,6 +163,6 @@ class YoloV5Detector(AbstractSignDetector):
             img (np.array): Input image.
 
         Returns:
-            list[tuple[float, float, float, float]]: List of relative sign coordinates.
+            List[Tuple[float, float, float, float]]: List of relative sign coordinates.
         """
         return self.detect_batch([img])[0]

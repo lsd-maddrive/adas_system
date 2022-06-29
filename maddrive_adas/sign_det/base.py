@@ -1,3 +1,5 @@
+from typing import List, Tuple
+
 import numpy as np
 import cv2
 
@@ -7,12 +9,12 @@ class DetectedInstance:  # TODO: remove detected sign class?
     """
 
     def __init__(self, img: np.array):
-        self.abs_rois: list[int] = []
-        self.rel_rois: list[float] = []
-        self.confs: list[float] = []
+        self.abs_rois: List[int] = []
+        self.rel_rois: List[float] = []
+        self.confs: List[float] = []
         self.img = img.copy()
 
-    def add_abs_roi(self, roi: list[int], conf: float):
+    def add_abs_roi(self, roi: List[int], conf: float):
         self.abs_rois.append(list(map(int, roi)))
         h, w, *_ = self.img.shape
         self.confs.append(conf)
@@ -23,7 +25,7 @@ class DetectedInstance:  # TODO: remove detected sign class?
             roi[3] / h,
         ])
 
-    def add_rel_roi(self, roi: list[int], conf: float):
+    def add_rel_roi(self, roi: List[int], conf: float):
         self.rel_rois.append(roi)
         h, w, *_ = self.img.shape
         self.confs.append(conf)
@@ -42,7 +44,7 @@ class DetectedInstance:  # TODO: remove detected sign class?
         except IndexError:
             assert False, 'Wrong index'
 
-    def get_abs_roi(self, idx) -> tuple[list, float]:
+    def get_abs_roi(self, idx) -> Tuple[list, float]:
         """Get absolute ROI and confidence.
         """
         try:
@@ -99,7 +101,7 @@ class DetectedSign:
     We define one point of signs retectino contract for communication
     """
 
-    def __init__(self, bbox: list[float]) -> None:
+    def __init__(self, bbox: List[float]) -> None:
         self._bbox = np.array(bbox, dtype=np.float32)
 
     def as_dict(self) -> dict:
@@ -124,14 +126,14 @@ class AbstractSignDetector:
         """
         raise NotImplementedError()
 
-    def detect_batch(self, imgs: list[np.array]) -> list[DetectedInstance]:
+    def detect_batch(self, imgs: List[np.array]) -> List[DetectedInstance]:
         """Detect signs on image list.
 
         Args:
-            imgs (list[np.array]): list of np.array images.
+            imgs (List[np.array]): list of np.array images.
 
         Returns:
-            list[DetectedInstance]: List of Detected signs as DetectedInstance's.
+            List[DetectedInstance]: List of Detected signs as DetectedInstance's.
         """
         raise NotImplementedError()
 
@@ -145,20 +147,20 @@ class AbstractSignClassifier:
 
     def classify_batch(
         self,
-        instances: list[DetectedInstance]
-    ) -> list[tuple[str, float]]:
+        instances: List[DetectedInstance]
+    ) -> List[Tuple[str, float]]:
         """Classify batch.
 
         Args:
-            imgs (list[np.array]): List of images.
-            RROI (list[list[float]]): List of relative regions of interest.
+            imgs (List[np.array]): List of images.
+            RROI (List[List[float]]): List of relative regions of interest.
 
         Returns:
-            list[tuple[str, float]]: Unzipped list of results: (sign, confidence).
+            List[Tuple[str, float]]: Unzipped list of results: (sign, confidence).
         """
         raise NotImplementedError()
 
-    def classify(self, instance: DetectedInstance) -> tuple[str, float]:
+    def classify(self, instance: DetectedInstance) -> Tuple[str, float]:
         raise NotImplementedError()
 
 
@@ -177,9 +179,9 @@ class AbstractComposer:
         raise NotImplementedError()
 
     # TODO: fix my name and return types please
-    def detect_and_classify_batch(self, imgs: list[np.array]) -> None:  # list[tuple[str, float]]:
+    def detect_and_classify_batch(self, imgs: List[np.array]) -> None:  # List[Tuple[str, float]]:
         raise NotImplementedError()
 
     # TODO: same
-    def detect_and_classify(self, imgs: list[np.array]) -> None:  # list[tuple[str, float]]:
+    def detect_and_classify(self, imgs: List[np.array]) -> None:  # List[Tuple[str, float]]:
         raise NotImplementedError()

@@ -1,3 +1,5 @@
+from typing import List
+
 from pathlib import Path
 
 from maddrive_adas.utils.fs import imread_rgb
@@ -40,7 +42,7 @@ def test_classifier():
     img2 = imread_rgb(DATA_DIR / 'additional_sign' / '1.31_1.png')
     img3 = imread_rgb(DATA_DIR / 'additional_sign' / '3.24.100_3.png')
 
-    classify_batch_arg: list[DetectedInstance] = [
+    classify_batch_arg: List[DetectedInstance] = [
         DetectedInstance(img1),
         DetectedInstance(img2),
         DetectedInstance(img3),
@@ -71,7 +73,7 @@ def test_composer():
 
 
 if __name__ == '__main__':
-    # a = test_detector()
-    # b = test_classifier()
+    a = test_detector()
+    b = test_classifier()
     c = test_composer()
     assert False, 'Check opened windows or/and fcns return values'
