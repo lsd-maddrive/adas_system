@@ -81,6 +81,7 @@ class EncoderBasedClassifier(AbstractSignClassifier):
             return []
 
         # 2. crop img and make array from it
+        # TODO: make generator from DetectedInstance aka yield
         imgs: List[np.array] = []
         for instance in instances:
             for idx in range(0, instance.get_roi_count()):
@@ -92,9 +93,23 @@ class EncoderBasedClassifier(AbstractSignClassifier):
         model_pred = self._model(transformed_imgs)
 
         # 4. get nearest centroid for all img in imgs
-        return self._get_nearest_centroids(model_pred)
+        sign_and_confs_per_image: List[str, float] = self._get_sign_and_confidence(model_pred)
 
-    def _get_nearest_centroids(self, embs) -> List[str]:
+        # 5. rearrange to detections per DetectedInstance
+        res_per_detected_instance: List[DetectedInstance, List[Tuple[str, float]]] = []
+        accum: int = 0
+        for d in instances:
+            roi_count: int = d.get_roi_count()
+            res_per_detected_instance.append(
+                (
+                    d,
+                    [x for x in sign_and_confs_per_image[accum: accum + roi_count]]
+                )
+            )
+            accum += roi_count
+        return res_per_detected_instance
+
+    def _get_sign_and_confidence(self, embs):  # p3.8 cannot do is -> List[str, float]:
         nearest_sign = []
         for emb in embs:
             dist = (emb - self._centroid_location).pow(2).sum(-1).sqrt()
