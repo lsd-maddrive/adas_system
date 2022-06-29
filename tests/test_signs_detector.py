@@ -5,7 +5,7 @@ from maddrive_adas.sign_det.classifier import EncoderBasedClassifier
 from maddrive_adas.sign_det.composer import BasicSignsDetectorAndClassifier
 from maddrive_adas.sign_det.base import (
     AbstractSignDetector, AbstractSignClassifier,
-    AbstractComposer, DetectedInstance
+    AbstractComposer
 )
 
 PROJECT_ROOT: Path = Path('.')
@@ -29,15 +29,17 @@ composer: AbstractComposer = BasicSignsDetectorAndClassifier(
     detector=detector
 )
 
+# Detector
+
 
 def test_detector_base_execution_img1(detector_test_image1):
     detections = detector.detect(detector_test_image1)
-    assert len(detections.confs) == 3  # in fact 2
+    assert len(detections.confs) == 3
 
 
 def test_detector_base_execution_img2(detector_test_image2):
     detections = detector.detect(detector_test_image2)
-    assert len(detections.confs) == 3  # in fact 2
+    assert len(detections.confs) == 3
 
 
 def test_detector_base_execution_batch(
@@ -46,63 +48,73 @@ def test_detector_base_execution_batch(
 ):
     detections = detector.detect_batch(
         [detector_test_image1, detector_test_image2])
-    assert len(detections) == 2  # in fact 2
+    assert len(detections) == 2
 
 
 def test_detector_base_execution_batch_empty():
     detections = detector.detect_batch([])
-    assert len(detections) == 0  #
+    assert len(detections) == 0
+
+# Classifier
 
 
-def test_classifier_base_2_1_1(classifier_test_image_2_1_1):
-    classification_res = classifier.classify(classifier_test_image_2_1_1)
-    print(classification_res)
-    assert classification_res  # classification_res[0] == '2.1'
+def test_classifier_base_2_1_1_img(classifier_test_img_2_1_2):
+    classification_res = classifier.classify(classifier_test_img_2_1_2)
+    assert isinstance(classification_res, tuple) and len(classification_res[1]) == 1
 
 
-def test_classifier_base_2_1_2(classifier_test_image_2_1_2):
-    classification_res = classifier.classify(classifier_test_image_2_1_2)
-    print(classification_res)
-    assert classification_res  # classification_res[0] == '2.1'
+def test_classifier_base_2_1_2_di(classifier_test_di_2_1_2):
+    classification_res = classifier.classify(classifier_test_di_2_1_2)
+    assert isinstance(classification_res, tuple) and len(classification_res[1]) == 1
 
 
-def test_classifier_base_5_16(classifier_test_image_5_16: DetectedInstance):
-    classification_res = classifier.classify(classifier_test_image_5_16)
-    print(classification_res)
-    assert classification_res  # classification_res[0] == '5.16'
+def test_classifier_base_5_19_img(classifier_test_img_5_19):
+    classification_res = classifier.classify(classifier_test_img_5_19)
+    assert isinstance(classification_res, tuple) and len(classification_res[1]) == 1
+
+
+def test_classifier_base_5_19_di(classifier_test_di_5_19):
+    classification_res = classifier.classify(classifier_test_di_5_19)
+    assert isinstance(classification_res, tuple) and len(classification_res[1]) == 1
+
+
+def test_classifier_base_7_4_img(classifier_test_img_7_4):
+    classification_res = classifier.classify(classifier_test_img_7_4)
+    assert isinstance(classification_res, tuple) and len(classification_res[1]) == 1
+
+
+def test_classifier_base_7_4_di(classifier_test_di_7_4):
+    classification_res = classifier.classify(classifier_test_di_7_4)
+    assert isinstance(classification_res, tuple) and len(classification_res[1]) == 1
 
 
 def test_classifier_batch_test(
-    classifier_test_image_2_1_1,
-    classifier_test_image_2_1_2,
-    classifier_test_image_5_16
+    classifier_test_di_2_1_2,
+    classifier_test_img_7_4,
+    classifier_test_di_7_4
 ):
     classification_res = classifier.classify_batch(
         [
-            classifier_test_image_2_1_1,
-            classifier_test_image_2_1_2,
-            classifier_test_image_5_16
+            classifier_test_di_2_1_2,
+            classifier_test_img_7_4,
+            classifier_test_di_7_4
         ]
     )
-    print(classification_res)
-    assert classification_res  # [x[0] for x in classification_res] == ['2.1', '2.1', '5.16']
+    assert len(classification_res) == 3
 
 
 def test_classifier_batch_empty():
     classification_res = classifier.classify_batch([])
-    print(classification_res)
-    assert len(classification_res) == 0  # in fact 2
+    assert len(classification_res) == 0
 
 
 def test_composer_img1(detector_test_image1):
     result = composer.detect_and_classify(detector_test_image1)
-    print(result)
     assert isinstance(result, tuple)
 
 
 def test_composer_img2(detector_test_image2):
     result = composer.detect_and_classify(detector_test_image2)
-    print(result)
     assert isinstance(result, tuple)
 
 
@@ -110,5 +122,4 @@ def test_composer_batch(detector_test_image1, detector_test_image2):
     result = composer.detect_and_classify_batch(
         [detector_test_image1, detector_test_image2]
     )
-    print(result)
     assert len(result) == 2

@@ -67,7 +67,7 @@ class EncoderBasedClassifier(AbstractSignClassifier):
     def classify_batch(
         self,
         detected_instances: List[DetectedInstance]
-    ) -> List[Tuple[DetectedInstance, Tuple[str, float]]]:
+    ) -> List[Tuple[DetectedInstance, List[Tuple[str, float]]]]:
         """Classify image batch.
 
         Args:
@@ -82,14 +82,14 @@ class EncoderBasedClassifier(AbstractSignClassifier):
 
         # 2. crop img and make array from it
         # TODO: make generator from DetectedInstance aka yield
-        imgs: List[np.array] = []
+        imgs: List[np.ndarray] = []
         for detected_instance in detected_instances:
             if isinstance(detected_instance, DetectedInstance):
                 for idx in range(0, detected_instance.get_roi_count()):
                     imgs.append(detected_instance.get_cropped_img(idx))
             elif isinstance(detected_instance, np.ndarray):
                 print('[!] Passed for classification data is not isntance of DetectedInstacnce')
-                print("[!] It's np.array, so let's try to raw append full image for classification")
+                print("[!] It's np.ndarray. Trying to append it as raw image for classification")
                 imgs.append(detected_instance)
             else:
                 raise ValueError('Wrong instance type')
@@ -146,7 +146,7 @@ class EncoderBasedClassifier(AbstractSignClassifier):
     def classify(
         self,
         instance: DetectedInstance
-    ) -> Tuple[str, float]:
+    ) -> Tuple[DetectedInstance, List[Tuple[str, float]]]:
         """Classify a single DetectedInstance.
 
         Args:

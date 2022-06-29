@@ -111,16 +111,16 @@ class YoloV5Detector(AbstractSignDetector):
         return ret_list
 
     @torch.no_grad()
-    def detect_batch(self, imgs: List[np.array]) -> List[DetectedInstance]:
+    def detect_batch(self, imgs: List[np.ndarray]) -> List[DetectedInstance]:
         """Returs list of subimages - detected signs.
 
         Return list is list of detected signs per each imgs element.
 
         Args:
-            imgs (List[np.array]): List of RGB images.
+            imgs (List[np.ndarray]): List of RGB images.
 
         Returns:
-            List[np.array]: RGB Subimages list for every batch element.
+            List[DetectedInstance]: DetectedInstance image description.
         """
         if len(imgs) == 0:
             return []
