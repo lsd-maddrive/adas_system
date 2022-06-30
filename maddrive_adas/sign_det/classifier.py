@@ -25,6 +25,7 @@ class EncoderBasedClassifier(AbstractSignClassifier):
         self,
         config_path: str,
         path_to_centroid_location: dict = None,
+        ignore_tesseract: bool = False,
         device: torch.device = None,
     ):
         """EncoderBasedClassifier Constructor.
@@ -38,17 +39,19 @@ class EncoderBasedClassifier(AbstractSignClassifier):
             path_to_centroid_location (dict, optional): Pass dict centroid location for overwriting
             centroids from model archive. Defaults to ''.
         """
-        try:
-            output = subprocess.check_output(
-                'tesseract -v',
-                stderr=subprocess.STDOUT
-            ).decode()
-            if 'tesseract' not in output:
+        self._ignore_tesseract = ignore_tesseract
+        if ignore_tesseract:
+            try:
+                output = subprocess.check_output(
+                    'tesseract -v',
+                    stderr=subprocess.STDOUT
+                ).decode()
+                if 'tesseract' not in output:
+                    raise subprocess.CalledProcessError
+            except subprocess.CalledProcessError:
+                print('Unable to call tessecact. Install and add tesseract to PATH variable.')
+                print('Link: https://tesseract-ocr.github.io/tessdoc/Downloads.html')
                 raise subprocess.CalledProcessError
-        except subprocess.CalledProcessError:
-            print('Unable to call tessecact. Install and add tesseract to PATH variable.')
-            print('Link: https://tesseract-ocr.github.io/tessdoc/Downloads.html')
-            raise subprocess.CalledProcessError
 
         self._device = device if device else torch.device(
             'cuda' if torch.cuda.is_available() else 'cpu')
@@ -76,6 +79,7 @@ class EncoderBasedClassifier(AbstractSignClassifier):
             [torch.Tensor(v) for v in _centroid_location_dict.values()]
         ).to(self._device)
 
+    # noqa
     @torch.no_grad()
     def classify_batch(
         self,
@@ -162,12 +166,12 @@ class EncoderBasedClassifier(AbstractSignClassifier):
             nearest_sign.append((key, float(confidence)))
         return nearest_sign
 
-    @staticmethod
-    def _fixup_signs_with_text(sign_and_confs_per_image: List[Union[str, float]]):
-        for v in sign_and_confs_per_image:
-            if v[0] in ['3.24', '3.25']:
-                # TODO: implement tesseract
-                pass
+    def _fixup_signs_with_text(self, sign_and_confs_per_image: List[Union[str, float]]):
+        if not self._ignore_tesseract:
+            for v in sign_and_confs_per_image:
+                if v[0] in ['3.24', '3.25']:
+                    # TODO: implement tesseract
+                    pass
 
     def classify(
         self,
