@@ -1,3 +1,5 @@
+from typing import List, Tuple, Union
+
 import json
 
 import torch
@@ -64,25 +66,33 @@ class EncoderBasedClassifier(AbstractSignClassifier):
     @torch.no_grad()
     def classify_batch(
         self,
-        instances: list[DetectedInstance]
-    ) -> list[tuple[str, float]]:
+        detected_instances: List[DetectedInstance]
+    ) -> List[Tuple[DetectedInstance, List[Tuple[str, float]]]]:
         """Classify image batch.
 
         Args:
-            instances (list[DetectedInstance]): List of DetectedInstance image
+            instances (List[DetectedInstance]): List of DetectedInstance image
             descriptions.
 
         Returns:
-            list[tuple[str, float]]: List of tuple(sign, confidence)
+            List[Tuple[str, float]]: List of tuple(sign, confidence)
         """
-        if not instances:
+        if not detected_instances:
             return []
 
         # 2. crop img and make array from it
-        imgs: list[np.array] = []
-        for instance in instances:
-            for idx in range(0, instance.get_roi_count()):
-                imgs.append(instance.get_cropped_img(idx))
+        # TODO: make generator from DetectedInstance aka yield
+        imgs: List[np.ndarray] = []
+        for detected_instance in detected_instances:
+            if isinstance(detected_instance, DetectedInstance):
+                for idx in range(0, detected_instance.get_roi_count()):
+                    imgs.append(detected_instance.get_cropped_img(idx))
+            elif isinstance(detected_instance, np.ndarray):
+                print('[!] Passed for classification data is not isntance of DetectedInstacnce')
+                print("[!] It's np.ndarray. Trying to append it as raw image for classification")
+                imgs.append(detected_instance)
+            else:
+                raise ValueError('Wrong instance type')
 
         # 3. pass it to model
         transformed_imgs = torch.stack([self._transform(image=img)['image'] / 255 for img in imgs])
@@ -90,9 +100,35 @@ class EncoderBasedClassifier(AbstractSignClassifier):
         model_pred = self._model(transformed_imgs)
 
         # 4. get nearest centroid for all img in imgs
-        return self._get_nearest_centroids(model_pred)
+        sign_and_confs_per_image: List[str, float] = self._get_sign_and_confidence(model_pred)
 
-    def _get_nearest_centroids(self, embs) -> list[str]:
+        # 5. rearrange to detections per DetectedInstance
+        res_per_detected_instance: List[DetectedInstance, List[Tuple[str, float]]] = []
+        accum: int = 0
+        for d in detected_instances:
+            if isinstance(d, DetectedInstance):
+                roi_count: int = d.get_roi_count()
+                res_per_detected_instance.append(
+                    (
+                        d,
+                        [x for x in sign_and_confs_per_image[accum: accum + roi_count]]
+                    )
+                )
+                accum += roi_count
+            elif isinstance(d, np.ndarray):
+                _detected_instance = DetectedInstance(d)
+                conf = sign_and_confs_per_image[accum: accum + 1]
+                _detected_instance.add_rel_roi([0., 0., 1., 1.], conf)
+                res_per_detected_instance.append(
+                    (
+                        _detected_instance,
+                        conf
+                    )
+                )
+                accum += 1
+        return res_per_detected_instance
+
+    def _get_sign_and_confidence(self, embs) -> List[Union[str, float]]:
         nearest_sign = []
         for emb in embs:
             dist = (emb - self._centroid_location).pow(2).sum(-1).sqrt()
@@ -110,13 +146,13 @@ class EncoderBasedClassifier(AbstractSignClassifier):
     def classify(
         self,
         instance: DetectedInstance
-    ) -> tuple[str, float]:
+    ) -> Tuple[DetectedInstance, List[Tuple[str, float]]]:
         """Classify a single DetectedInstance.
 
         Args:
             instance (DetectedInstance): DetectedInstance image description.
 
         Returns:
-            tuple[str, float]: (sign, confidence)
+            Tuple[str, float]: (sign, confidence)
         """
         return self.classify_batch([instance])[0]

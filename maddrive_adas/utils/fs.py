@@ -3,7 +3,8 @@ from pathlib import Path
 from .logger import logger
 
 
-def imread_rgb(fpath: str | Path):
+# def imread_rgb(fpath: str | Path):
+def imread_rgb(fpath):
     if isinstance(fpath, Path):
         fpath = str(fpath)
 
