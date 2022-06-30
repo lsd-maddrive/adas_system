@@ -94,6 +94,9 @@ class EncoderBasedClassifier(AbstractSignClassifier):
             else:
                 raise ValueError('Wrong instance type')
 
+        if not imgs:
+            return []
+
         # 3. pass it to model
         transformed_imgs = torch.stack([self._transform(image=img)['image'] / 255 for img in imgs])
         transformed_imgs = transformed_imgs.to(self._device, dtype=torch.float32)
