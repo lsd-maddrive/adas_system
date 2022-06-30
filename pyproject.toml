@@ -27,6 +27,7 @@ torchvision = "^0.13.0"
 matplotlib = "^3.5.2"
 albumentations = "^1.1.0"
 python-benedict = "^0.25.1"
+pytesseract = "^0.3.9"
 
 [tool.poetry.dev-dependencies]
 nbdime = "^3.1.1"

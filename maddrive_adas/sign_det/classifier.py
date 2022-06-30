@@ -5,6 +5,8 @@ import subprocess
 
 import torch
 import numpy as np
+import pytesseract
+import cv2
 
 from .base import AbstractSignClassifier, DetectedInstance
 from maddrive_adas.utils.transforms import get_minimal_and_augment_transforms
@@ -48,6 +50,9 @@ class EncoderBasedClassifier(AbstractSignClassifier):
                 ).decode()
                 if 'tesseract' not in output:
                     raise subprocess.CalledProcessError
+                else:
+                    self._tesseract_ver_major = int(
+                        output.split('\r\n')[0].split()[1].split('.')[0])
             except subprocess.CalledProcessError:
                 print('Unable to call tessecact. Install and add tesseract to PATH variable.')
                 print('Link: https://tesseract-ocr.github.io/tessdoc/Downloads.html')
@@ -123,7 +128,9 @@ class EncoderBasedClassifier(AbstractSignClassifier):
         sign_and_confs_per_image: List[str, float] = self._get_sign_and_confidence(model_pred)
 
         # 4.5. Fix 3.24, 3.25. Get text from image.
-        self._fixup_signs_with_text(sign_and_confs_per_image)
+        sign_and_confs_per_image = list(
+            map(self._fixup_signs_with_text, imgs, sign_and_confs_per_image)
+        )
 
         # 5. rearrange to detections per DetectedInstance
         res_per_detected_instance: List[DetectedInstance, List[Tuple[str, float]]] = []
@@ -166,12 +173,40 @@ class EncoderBasedClassifier(AbstractSignClassifier):
             nearest_sign.append((key, float(confidence)))
         return nearest_sign
 
-    def _fixup_signs_with_text(self, sign_and_confs_per_image: List[Union[str, float]]):
+    def _fixup_signs_with_text(
+        self,
+        img: np.ndarray,
+        sign_and_confs_for_image: Tuple[str, float]
+    ):
         if not self._ignore_tesseract:
-            for v in sign_and_confs_per_image:
-                if v[0] in ['3.24', '3.25']:
-                    # TODO: implement tesseract
-                    pass
+            if sign_and_confs_for_image[0] in ['3.24', '3.25']:
+                # fixup img
+                _img = crop_img(img, xscale=0.7, yscale=0.4)
+                _img = cv2.cvtColor(_img, cv2.COLOR_BGR2GRAY)
+                _img = cv2.GaussianBlur(_img, (3, 3), 0)
+                thresh = cv2.threshold(_img, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+                kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 6))
+                opening = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=1)
+                invert = 255 - opening
+                # get tesseract output
+                tes_out: str = pytesseract.image_to_string(invert, config='--psm 13')
+                print(tes_out)
+                cv2.imshow(sign_and_confs_for_image[0] + '_invert', invert)
+                if tes_out:
+                    # remove new lines and filter alpha and digits
+                    tes_out: str = tes_out.split('\n\n')[0]
+                    tes_out = ''.join(filter(lambda w: w.isalpha() or w.isdigit(), tes_out))
+                    tes_out = tes_out.lower().replace('j', '1').replace(
+                        'l', '1').replace('o', '0').replace('q', '0').replace('t', '1')
+
+                    sign_and_confs_for_image = (
+                        sign_and_confs_for_image[0] + f'.{tes_out}', sign_and_confs_for_image[1]
+                    )
+                cv2.imshow(sign_and_confs_for_image[0], img)
+                cv2.waitKey(0)
+                return sign_and_confs_for_image
+
+        return sign_and_confs_for_image
 
     def classify(
         self,
@@ -186,3 +221,12 @@ class EncoderBasedClassifier(AbstractSignClassifier):
             Tuple[str, float]: (sign, confidence)
         """
         return self.classify_batch([instance])[0]
+
+
+def crop_img(img, xscale=1.0, yscale=1.0):
+    center_x, center_y = img.shape[1] / 2, img.shape[0] / 2
+    width_scaled, height_scaled = img.shape[1] * xscale, img.shape[0] * yscale
+    left_x, right_x = center_x - width_scaled / 2, center_x + width_scaled / 2
+    top_y, bottom_y = center_y - height_scaled / 2, center_y + height_scaled / 2
+    img_cropped = img[int(top_y):int(bottom_y), int(left_x):int(right_x)]
+    return img_cropped
