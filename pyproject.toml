@@ -46,7 +46,7 @@ pyproject-flake8 = "^0.0.1-alpha.3"
 autopep8 = "^1.6.0"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["setuptools", "poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.black]
