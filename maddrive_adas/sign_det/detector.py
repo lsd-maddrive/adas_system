@@ -141,7 +141,7 @@ class YoloV5Detector(AbstractSignDetector):
             self._img_size,  # scaled img for model
             original_img_size,  #
             # TODO: cardcoded arg
-            conf_thres=0.10,
+            conf_thres=0.5,
             max_det=10)
 
         # transform to DetectedInstance

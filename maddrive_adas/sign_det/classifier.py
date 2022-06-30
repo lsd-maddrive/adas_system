@@ -1,6 +1,7 @@
 from typing import List, Tuple, Union
 
 import json
+import subprocess
 
 import torch
 import numpy as np
@@ -37,6 +38,18 @@ class EncoderBasedClassifier(AbstractSignClassifier):
             path_to_centroid_location (dict, optional): Pass dict centroid location for overwriting
             centroids from model archive. Defaults to ''.
         """
+        try:
+            output = subprocess.check_output(
+                'tesseract -v',
+                stderr=subprocess.STDOUT
+            ).decode()
+            if 'tesseract' not in output:
+                raise subprocess.CalledProcessError
+        except subprocess.CalledProcessError:
+            print('Unable to call tessecact. Install and add tesseract to PATH variable.')
+            print('Link: https://tesseract-ocr.github.io/tessdoc/Downloads.html')
+            raise subprocess.CalledProcessError
+
         self._device = device if device else torch.device(
             'cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -95,7 +108,7 @@ class EncoderBasedClassifier(AbstractSignClassifier):
                 raise ValueError('Wrong instance type')
 
         if not imgs:
-            return []
+            return [(x, []) for x in detected_instances]
 
         # 3. pass it to model
         transformed_imgs = torch.stack([self._transform(image=img)['image'] / 255 for img in imgs])
@@ -104,6 +117,9 @@ class EncoderBasedClassifier(AbstractSignClassifier):
 
         # 4. get nearest centroid for all img in imgs
         sign_and_confs_per_image: List[str, float] = self._get_sign_and_confidence(model_pred)
+
+        # 4.5. Fix 3.24, 3.25. Get text from image.
+        self._fixup_signs_with_text(sign_and_confs_per_image)
 
         # 5. rearrange to detections per DetectedInstance
         res_per_detected_instance: List[DetectedInstance, List[Tuple[str, float]]] = []
@@ -146,9 +162,16 @@ class EncoderBasedClassifier(AbstractSignClassifier):
             nearest_sign.append((key, float(confidence)))
         return nearest_sign
 
+    @staticmethod
+    def _fixup_signs_with_text(sign_and_confs_per_image: List[Union[str, float]]):
+        for v in sign_and_confs_per_image:
+            if v[0] in ['3.24', '3.25']:
+                # TODO: implement tesseract
+                pass
+
     def classify(
         self,
-        instance: DetectedInstance
+        instance: Union[DetectedInstance, np.ndarray],
     ) -> Tuple[DetectedInstance, List[Tuple[str, float]]]:
         """Classify a single DetectedInstance.
 
