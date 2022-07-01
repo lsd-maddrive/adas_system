@@ -179,8 +179,10 @@ class EncoderBasedClassifier(AbstractSignClassifier):
     def _fixup_signs_with_text(
         self,
         img_src: np.ndarray,
-        sign_and_confs_for_image: Tuple[str, float]
+        sign_and_confs_for_image: Tuple[str, float],
+        ret_debug_img=False,
     ):
+        d: List[np.ndarray] = []
         if not self._ignore_tesseract:
             if sign_and_confs_for_image[0] in ['3.24', '3.25']:
                 # fixup img
@@ -197,6 +199,9 @@ class EncoderBasedClassifier(AbstractSignClassifier):
                 img = cv2.dilate(img, _erode_kernel, cv2.BORDER_CONSTANT, iterations=1)
 
                 tes_out: str = pytesseract.image_to_string(img, config='--psm 13')
+                if ret_debug_img:
+                    print('appending debug img')
+                    d.append(img)
 
                 # if we cannot get output, let's try one more time
                 if not tes_out:
@@ -210,6 +215,9 @@ class EncoderBasedClassifier(AbstractSignClassifier):
                     invert = 255 - opening
                     # get tesseract output
                     tes_out: str = pytesseract.image_to_string(invert, config='--psm 13')
+                    if ret_debug_img:
+                        print('appending debug img')
+                        d.append(invert)
 
                 if tes_out:
                     # remove new lines and filter alpha and digits
@@ -226,8 +234,8 @@ class EncoderBasedClassifier(AbstractSignClassifier):
                 # cv2.imshow(sign_and_confs_for_image[0] + '_invert', invert)
                 # cv2.imshow(sign_and_confs_for_image[0], img)
                 # cv2.waitKey(0)
-                return sign_and_confs_for_image
-
+        if ret_debug_img:
+            return sign_and_confs_for_image, d
         return sign_and_confs_for_image
 
     def classify(
