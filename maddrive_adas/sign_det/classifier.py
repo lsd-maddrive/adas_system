@@ -12,6 +12,8 @@ from .base import AbstractSignClassifier, DetectedInstance
 from maddrive_adas.utils.transforms import get_minimal_and_augment_transforms
 from maddrive_adas.utils.models import get_model_and_img_size
 
+_TARGET_WIDTH = 40
+_erode_kernel = np.ones((2, 2), np.uint8)
 
 REQUIRED_ARCHIVE_KEYS = ['model', 'centroid_location', 'model_config']
 
@@ -175,35 +177,54 @@ class EncoderBasedClassifier(AbstractSignClassifier):
 
     def _fixup_signs_with_text(
         self,
-        img: np.ndarray,
+        img_src: np.ndarray,
         sign_and_confs_for_image: Tuple[str, float]
     ):
         if not self._ignore_tesseract:
             if sign_and_confs_for_image[0] in ['3.24', '3.25']:
                 # fixup img
-                _img = crop_img(img, xscale=0.7, yscale=0.4)
-                _img = cv2.cvtColor(_img, cv2.COLOR_BGR2GRAY)
-                _img = cv2.GaussianBlur(_img, (3, 3), 0)
-                thresh = cv2.threshold(_img, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
-                kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 6))
-                opening = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=1)
-                invert = 255 - opening
-                # get tesseract output
-                tes_out: str = pytesseract.image_to_string(invert, config='--psm 13')
-                print(tes_out)
-                cv2.imshow(sign_and_confs_for_image[0] + '_invert', invert)
+                img = cv2.cvtColor(img_src, cv2.COLOR_RGB2GRAY)
+                img = crop_img(img, xscale=0.7, yscale=0.4)
+                scale_x = _TARGET_WIDTH / img.shape[0]
+                img = cv2.resize(img, (int(img.shape[0] * scale_x),
+                                       _TARGET_WIDTH), interpolation=cv2.INTER_AREA)
+                img = cv2.GaussianBlur(img, (7, 7), 0)
+                img = cv2.adaptiveThreshold(
+                    img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 5, 5)
+                img = cv2.morphologyEx(img, cv2.MORPH_OPEN, _erode_kernel, iterations=2)
+                img = cv2.erode(img, _erode_kernel, cv2.BORDER_CONSTANT)
+                img = cv2.dilate(img, _erode_kernel, cv2.BORDER_CONSTANT, iterations=1)
+
+                tes_out: str = pytesseract.image_to_string(img, config='--psm 13')
+
+                # if we cannot get output, let's try one more time
+                if not tes_out:
+                    # oldfix
+                    img = crop_img(img_src, xscale=0.7, yscale=0.4)
+                    img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+                    img = cv2.GaussianBlur(img, (3, 3), 0)
+                    thresh = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+                    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 6))
+                    opening = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=1)
+                    invert = 255 - opening
+                    # get tesseract output
+                    tes_out: str = pytesseract.image_to_string(invert, config='--psm 13')
+
                 if tes_out:
                     # remove new lines and filter alpha and digits
                     tes_out: str = tes_out.split('\n\n')[0]
                     tes_out = ''.join(filter(lambda w: w.isalpha() or w.isdigit(), tes_out))
                     tes_out = tes_out.lower().replace('j', '1').replace(
-                        'l', '1').replace('o', '0').replace('q', '0').replace('t', '1')
+                        'l', '1').replace('o', '0').replace('q', '0').replace('t', '1').replace(
+                        'c', '0').replace('i', '1').replace('a', '4')
 
                     sign_and_confs_for_image = (
                         sign_and_confs_for_image[0] + f'.{tes_out}', sign_and_confs_for_image[1]
                     )
-                cv2.imshow(sign_and_confs_for_image[0], img)
-                cv2.waitKey(0)
+                # print(tes_out)
+                # cv2.imshow(sign_and_confs_for_image[0] + '_invert', invert)
+                # cv2.imshow(sign_and_confs_for_image[0], img)
+                # cv2.waitKey(0)
                 return sign_and_confs_for_image
 
         return sign_and_confs_for_image
