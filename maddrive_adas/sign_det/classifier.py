@@ -59,7 +59,7 @@ class EncoderBasedClassifier(AbstractSignClassifier):
                     print(f'Founded tesseract {_tesseract_ver_major}.X.X')
 
                     if _tesseract_ver_major == 4:
-                        self._tesseract_additional_args = '--psm 13 digits'
+                        self._tesseract_additional_args = '--psm 13 digits'  # TODO: use 6
                     else:
                         self._tesseract_additional_args = '--psm 9'
             except subprocess.CalledProcessError:
