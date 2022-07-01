@@ -44,18 +44,21 @@ class EncoderBasedClassifier(AbstractSignClassifier):
             centroids from model archive. Defaults to ''.
         """
         self._ignore_tesseract = ignore_tesseract
-        if ignore_tesseract:
+        if not ignore_tesseract:
             try:
                 output = subprocess.check_output(
                     'tesseract -v',
                     stderr=subprocess.STDOUT,
                     shell=True,
                 ).decode()
+                print(output)
                 if 'tesseract' not in output:
                     raise subprocess.CalledProcessError
                 else:
                     _tesseract_ver_major = int(
                         output.split('\r\n')[0].split()[1].split('.')[0])
+                    print(f'Founded tesseract {_tesseract_ver_major}.X.X')
+
                     if _tesseract_ver_major == 4:
                         self._tesseract_additional_args = '--psm 13 digits'
                     else:
