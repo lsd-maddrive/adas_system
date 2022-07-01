@@ -51,7 +51,6 @@ class EncoderBasedClassifier(AbstractSignClassifier):
                     stderr=subprocess.STDOUT,
                     shell=True,
                 ).decode()
-                print(output)
                 if 'tesseract' not in output:
                     raise subprocess.CalledProcessError
                 else:
