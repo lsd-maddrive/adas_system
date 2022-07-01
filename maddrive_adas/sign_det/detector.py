@@ -114,8 +114,8 @@ class YoloV5Detector(AbstractSignDetector):
     def detect_batch(
         self,
         imgs: List[np.ndarray],
-        conf_thres=0.5,
-        iou_thres=0.5
+        d_conf_thres=0.5,
+        d_iou_thres=0.5
     ) -> List[DetectedInstance]:
         """Returs list of subimages - detected signs.
 
@@ -146,8 +146,8 @@ class YoloV5Detector(AbstractSignDetector):
             self._img_size,  # scaled img for model
             original_img_size,  #
             # TODO: cardcoded arg
-            conf_thres=conf_thres,
-            iou_thres=iou_thres,
+            conf_thres=d_conf_thres,
+            iou_thres=d_iou_thres,
             max_det=20)
 
         # transform to DetectedInstance
@@ -161,7 +161,7 @@ class YoloV5Detector(AbstractSignDetector):
 
         return ret_list
 
-    def detect(self, img: np.ndarray, conf_thres=0.5, iou_thres=0.5) -> DetectedInstance:
+    def detect(self, img: np.ndarray, d_conf_thres=0.5, d_iou_thres=0.5) -> DetectedInstance:
         """Detect sign on img.
 
         Args:
@@ -170,4 +170,4 @@ class YoloV5Detector(AbstractSignDetector):
         Returns:
             List[Tuple[float, float, float, float]]: List of relative sign coordinates.
         """
-        return self.detect_batch([img], conf_thres=conf_thres, iou_thres=iou_thres)[0]
+        return self.detect_batch([img], d_conf_thres=d_conf_thres, d_iou_thres=d_iou_thres)[0]

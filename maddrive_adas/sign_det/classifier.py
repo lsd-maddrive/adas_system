@@ -90,7 +90,8 @@ class EncoderBasedClassifier(AbstractSignClassifier):
     @torch.no_grad()
     def classify_batch(
         self,
-        detected_instances: List[DetectedInstance]
+        detected_instances: List[DetectedInstance],
+        **kwargs
     ) -> List[Tuple[DetectedInstance, List[Tuple[str, float]]]]:
         """Classify image batch.
 
@@ -232,6 +233,7 @@ class EncoderBasedClassifier(AbstractSignClassifier):
     def classify(
         self,
         instance: Union[DetectedInstance, np.ndarray],
+        **kwargs
     ) -> Tuple[DetectedInstance, List[Tuple[str, float]]]:
         """Classify a single DetectedInstance.
 

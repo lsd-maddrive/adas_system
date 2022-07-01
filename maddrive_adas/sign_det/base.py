@@ -116,7 +116,7 @@ class AbstractSignDetector:
         """
         raise NotImplementedError()
 
-    def detect_batch(self, imgs: List[np.ndarray]) -> List[DetectedInstance]:
+    def detect_batch(self, imgs: List[np.ndarray], **kwargs) -> List[DetectedInstance]:
         """Detect signs on image list.
 
         Args:
@@ -137,7 +137,8 @@ class AbstractSignClassifier:
 
     def classify_batch(
         self,
-        instances: List[DetectedInstance]
+        instances: List[DetectedInstance],
+        **kwargs
     ) -> List[Tuple[DetectedInstance, List[Tuple[str, float]]]]:
         """Classify batch.
 
@@ -149,7 +150,11 @@ class AbstractSignClassifier:
         """
         raise NotImplementedError()
 
-    def classify(self, instance: DetectedInstance) -> Tuple[DetectedInstance, Tuple[str, float]]:
+    def classify(
+        self,
+        instance: DetectedInstance,
+        **kwargs
+    ) -> Tuple[DetectedInstance, Tuple[str, float]]:
         raise NotImplementedError()
 
 
@@ -168,9 +173,11 @@ class AbstractComposer:
         raise NotImplementedError()
 
     # TODO: fix my name and return types please
-    def detect_and_classify_batch(self, imgs: List[np.ndarray]) -> None:  # List[Tuple[str, float]]:
+    # List[Tuple[str, float]]:
+    def detect_and_classify_batch(self, imgs: List[np.ndarray], **kwargs) -> None:
         raise NotImplementedError()
 
     # TODO: same
-    def detect_and_classify(self, imgs: List[np.ndarray]) -> None:  # List[Tuple[str, float]]:
+    # List[Tuple[str, float]]:
+    def detect_and_classify(self, imgs: List[np.ndarray], **kwargs) -> None:
         raise NotImplementedError()
