@@ -48,13 +48,18 @@ class EncoderBasedClassifier(AbstractSignClassifier):
             try:
                 output = subprocess.check_output(
                     'tesseract -v',
-                    stderr=subprocess.STDOUT
+                    stderr=subprocess.STDOUT,
+                    shell=True,
                 ).decode()
                 if 'tesseract' not in output:
                     raise subprocess.CalledProcessError
                 else:
-                    self._tesseract_ver_major = int(
+                    _tesseract_ver_major = int(
                         output.split('\r\n')[0].split()[1].split('.')[0])
+                    if _tesseract_ver_major == 4:
+                        self._tesseract_additional_args = '--psm 13 digits'
+                    else:
+                        self._tesseract_additional_args = '--psm 9'
             except subprocess.CalledProcessError:
                 print('Unable to call tessecact. Install and add tesseract to PATH variable.')
                 print('Link: https://tesseract-ocr.github.io/tessdoc/Downloads.html')
@@ -198,7 +203,9 @@ class EncoderBasedClassifier(AbstractSignClassifier):
                 img = cv2.erode(img, _erode_kernel, cv2.BORDER_CONSTANT)
                 img = cv2.dilate(img, _erode_kernel, cv2.BORDER_CONSTANT, iterations=1)
 
-                tes_out: str = pytesseract.image_to_string(img, config='--psm 13')
+                tes_out: str = pytesseract.image_to_string(
+                    img,
+                    config=self._tesseract_additional_args)
                 if ret_debug_img:
                     print('appending debug img')
                     d.append(img)
@@ -214,7 +221,9 @@ class EncoderBasedClassifier(AbstractSignClassifier):
                     opening = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=1)
                     invert = 255 - opening
                     # get tesseract output
-                    tes_out: str = pytesseract.image_to_string(invert, config='--psm 13')
+                    tes_out: str = pytesseract.image_to_string(
+                        invert,
+                        config=self._tesseract_additional_args)
                     if ret_debug_img:
                         print('appending debug img')
                         d.append(invert)

@@ -33,13 +33,16 @@ composer: AbstractComposer = BasicSignsDetectorAndClassifier(
 
 
 def test_detector_base_execution_img1(detector_test_image1):
-    detections = detector.detect(detector_test_image1)
-    assert len(detections.confs) == 3
+    detections = detector.detect(
+        detector_test_image1,
+        d_conf_thres=0.11,
+        d_iou_thres=0.12)
+    assert len(detections.confs) == 2
 
 
 def test_detector_base_execution_img2(detector_test_image2):
     detections = detector.detect(detector_test_image2)
-    assert len(detections.confs) == 3
+    assert len(detections.confs) == 2
 
 
 def test_detector_base_execution_batch(
