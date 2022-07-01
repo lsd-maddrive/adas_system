@@ -21,3 +21,9 @@ git clone https://github.com/lsd-maddrive/adas_system
 ## Как начать разработку
 
 Читай в инфе [DEVELOPMENT.md](DEVELOPMENT.md)
+
+
+## Как использовать:
+* Выкачать веса используя `download_models.py`;
+* Рассмотреть ноутбуки в `SignDetectorAndClassifier\notebooks`: `DetectorVideoTest` и `COMPOSER`;
+* Если нет бинарей `tesseract-ocr`, передавайте `ignore_tesseract=False` в конструктор `EncoderBasedClassifier`;
