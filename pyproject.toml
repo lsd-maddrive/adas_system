@@ -15,6 +15,10 @@ packages = [
     { include = "maddrive_adas" },
 ]
 
+[tool.poetry.scripts]
+mdda-rtsd-download = "maddrive_adas.cli.rtsd_download:main"
+mdda-rtsd-generate-voc = "maddrive_adas.cli.rtsd_generate_voc:main"
+
 [tool.poetry.dependencies]
 python = ">=3.8,<3.11"
 pandas = "^1.4.2"
@@ -27,6 +31,8 @@ torchvision = "^0.13.0"
 matplotlib = "^3.5.2"
 albumentations = "^1.1.0"
 python-benedict = "^0.25.1"
+click = "^8.1.3"
+lxml = "^4.9.1"
 
 [tool.poetry.dev-dependencies]
 nbdime = "^3.1.1"
@@ -44,6 +50,7 @@ pytest = "^7.1.1"
 black = "^22.3.0"
 pyproject-flake8 = "^0.0.1-alpha.3"
 autopep8 = "^1.6.0"
+jupyterlab = "^3.4.3"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
