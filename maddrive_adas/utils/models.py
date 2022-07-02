@@ -21,11 +21,14 @@ def get_model_and_img_size(
     if path_to_config:
         model_data = get_model_config(path_to_config)
     else:
-        model_data = json.loads(config_data)
-        # TODO: fix ME. multiple json translations
-        while isinstance(model_data, str):
-            model_data = json.loads(model_data)
-            print(type(model_data))
+        if isinstance(config_data, str):
+            model_data = json.loads(config_data)
+            # TODO: fix ME. multiple json translations
+            while isinstance(model_data, str):
+                model_data = json.loads(model_data)
+                print(type(model_data))
+        else:  # dict
+            model_data = config_data
 
     model = getattr(
         importlib.import_module('torchvision.models'),

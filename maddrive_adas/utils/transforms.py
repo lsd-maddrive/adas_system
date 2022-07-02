@@ -9,10 +9,10 @@ from albumentations.augmentations.transforms import PadIfNeeded
 from albumentations.augmentations.geometric.resize import LongestMaxSize
 
 
-def get_minimal_and_augment_transforms(img_size):
+def get_minimal_and_augment_transforms(img_size, interpolation=cv2.INTER_LINEAR):
     minimal_transform = A.Compose(
         [
-            LongestMaxSize(img_size),
+            LongestMaxSize(img_size, interpolation=interpolation),
             PadIfNeeded(
                 img_size,
                 img_size,
@@ -48,7 +48,7 @@ def get_minimal_and_augment_transforms(img_size):
                             min_holes=1,
                             max_holes=3,
                             p=0.5),
-            LongestMaxSize(img_size),
+            LongestMaxSize(img_size, interpolation=interpolation),
             PadIfNeeded(
                 img_size,
                 img_size,
