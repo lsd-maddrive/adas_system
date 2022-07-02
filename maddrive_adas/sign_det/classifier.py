@@ -211,7 +211,7 @@ class EncoderBasedClassifier(AbstractSignClassifier):
                 # print(argmax)
                 predicted_sign = self._subc_code_to_sign_dict[argmax]
                 conf = pred_softmaxed[argmax]
-                return (predicted_sign, conf)
+                return (predicted_sign, conf.item())
 
         return sign_and_confs_for_image
 
