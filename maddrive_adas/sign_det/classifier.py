@@ -1,21 +1,15 @@
 from typing import List, Tuple, Union
-
 import json
-import subprocess
 
 import torch
 import numpy as np
-import pytesseract
-import cv2
 
 from .base import AbstractSignClassifier, DetectedInstance
 from maddrive_adas.utils.transforms import get_minimal_and_augment_transforms
 from maddrive_adas.utils.models import get_model_and_img_size
 
-_TARGET_WIDTH = 40
-_erode_kernel = np.ones((2, 2), np.uint8)
-
 REQUIRED_ARCHIVE_KEYS = ['model', 'centroid_location', 'model_config']
+SUBC_REQUIRED_KEYS = ['model', 'model_config', 'code_to_sign_dict']
 
 
 class EncoderBasedClassifier(AbstractSignClassifier):
@@ -29,7 +23,7 @@ class EncoderBasedClassifier(AbstractSignClassifier):
         self,
         config_path: str,
         path_to_centroid_location: dict = None,
-        ignore_tesseract: bool = False,
+        path_to_subclassifier_3_24_and_3_25_config: str = '',
         device: torch.device = None,
     ):
         """EncoderBasedClassifier Constructor.
@@ -43,32 +37,37 @@ class EncoderBasedClassifier(AbstractSignClassifier):
             path_to_centroid_location (dict, optional): Pass dict centroid location for overwriting
             centroids from model archive. Defaults to ''.
         """
-        self._ignore_tesseract = ignore_tesseract
-        if not ignore_tesseract:
-            try:
-                output = subprocess.check_output(
-                    'tesseract -v',
-                    stderr=subprocess.STDOUT,
-                    shell=True,
-                ).decode()
-                if 'tesseract' not in output:
-                    raise subprocess.CalledProcessError
-                else:
-                    _tesseract_ver_major = int(
-                        output.split('\r\n')[0].split()[1].split('.')[0])
-                    print(f'Founded tesseract {_tesseract_ver_major}.X.X')
-
-                    if _tesseract_ver_major == 4:
-                        self._tesseract_additional_args = '--psm 13 digits'  # TODO: use 6
-                    else:
-                        self._tesseract_additional_args = '--psm 9'
-            except subprocess.CalledProcessError:
-                print('Unable to call tessecact. Install and add tesseract to PATH variable.')
-                print('Link: https://tesseract-ocr.github.io/tessdoc/Downloads.html')
-                raise subprocess.CalledProcessError
-
+        # get device
         self._device = device if device else torch.device(
             'cuda' if torch.cuda.is_available() else 'cpu')
+
+        self._use_subclassifier: bool = False
+        # initialize subclassifier if it was passed
+        if path_to_subclassifier_3_24_and_3_25_config:
+            print('[+] Loading subclassifier')
+            self._use_subclassifier: bool = True
+            subclassifier_dict: dict = torch.load(
+                path_to_subclassifier_3_24_and_3_25_config,
+                map_location=torch.device('cpu')
+            )
+            assert(all([key in subclassifier_dict.keys() for key in SUBC_REQUIRED_KEYS])
+                   ), f'Verify subclassifier archive keys. It should contain {SUBC_REQUIRED_KEYS}'
+            self._subc, self._subc_img_size = get_model_and_img_size(
+                config_data=subclassifier_dict['model_config']
+            )
+            self._subc_transform, _ = get_minimal_and_augment_transforms(
+                self._subc_img_size, interpolation=3)   # 3 ~ interpolation=cv2.INTER_AREA
+
+            self._subc.load_state_dict(subclassifier_dict['model'])
+            self._subc = self._subc.to(self._device)
+            self._subc.eval()
+            # warmup
+            self._subc(torch.rand(
+                (1, 3, self._subc_img_size, self._subc_img_size)).to(self._device)
+            )
+            self._subc_code_to_sign_dict: dict = subclassifier_dict['code_to_sign_dict']
+        else:
+            print('[!] You are running WO 3.24, 3.25 subclassifier')
 
         model_dict: dict = torch.load(config_path, map_location=torch.device('cpu'))
         assert(all([key in model_dict.keys() for key in REQUIRED_ARCHIVE_KEYS])
@@ -120,8 +119,8 @@ class EncoderBasedClassifier(AbstractSignClassifier):
                 for idx in range(0, detected_instance.get_roi_count()):
                     imgs.append(detected_instance.get_cropped_img(idx))
             elif isinstance(detected_instance, np.ndarray):
-                print('[!] Passed for classification data is not isntance of DetectedInstacnce')
-                print("[!] It's np.ndarray. Trying to append it as raw image for classification")
+                # print('[!] Passed for classification data is not isntance of DetectedInstacnce')
+                # print("[!] It's np.ndarray. Trying to append it as raw image for classification")
                 imgs.append(detected_instance)
             else:
                 raise ValueError('Wrong instance type')
@@ -139,7 +138,7 @@ class EncoderBasedClassifier(AbstractSignClassifier):
 
         # 4.5. Fix 3.24, 3.25. Get text from image.
         sign_and_confs_per_image = list(
-            map(self._fixup_signs_with_text, imgs, sign_and_confs_per_image)
+            map(self._fixup_speed_signs, imgs, sign_and_confs_per_image)
         )
 
         # 5. rearrange to detections per DetectedInstance
@@ -183,70 +182,37 @@ class EncoderBasedClassifier(AbstractSignClassifier):
             nearest_sign.append((key, float(confidence)))
         return nearest_sign
 
-    def _fixup_signs_with_text(
+    def _fixup_speed_signs(
         self,
         img_src: np.ndarray,
         sign_and_confs_for_image: Tuple[str, float],
-        ret_debug_img=False,
-    ):
-        d: List[np.ndarray] = []
-        if not self._ignore_tesseract:
+    ) -> Tuple[str, float]:
+        """Fix 3.24 and 3.25 return signs.
+
+        Args:
+            img_src (np.ndarray): passed img.
+            sign_and_confs_for_image (Tuple[str, float]): Predicted sign and conf.
+
+        Returns:
+            Tuple[str, float]: possible fixed value.
+        """
+        if self._use_subclassifier:
             if sign_and_confs_for_image[0] in ['3.24', '3.25']:
-                # fixup img
-                img = cv2.cvtColor(img_src, cv2.COLOR_RGB2GRAY)
-                img = crop_img(img, xscale=0.7, yscale=0.4)
-                scale_x = _TARGET_WIDTH / img.shape[0]
-                img = cv2.resize(img, (int(img.shape[0] * scale_x),
-                                       _TARGET_WIDTH), interpolation=cv2.INTER_AREA)
-                img = cv2.GaussianBlur(img, (7, 7), 0)
-                img = cv2.adaptiveThreshold(
-                    img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 5, 5)
-                img = cv2.morphologyEx(img, cv2.MORPH_OPEN, _erode_kernel, iterations=2)
-                img = cv2.erode(img, _erode_kernel, cv2.BORDER_CONSTANT)
-                img = cv2.dilate(img, _erode_kernel, cv2.BORDER_CONSTANT, iterations=1)
+                # print(sum(sum(img_src)))
+                model_input = torch.stack(
+                    [self._subc_transform(image=img_src)['image'] / 255]
+                ).to(self._device)
+                # print(self._subc_transform)
+                # print(torch.sum(model_input))
+                pred = self._subc(model_input)
+                pred_softmaxed = torch.softmax(pred, dim=1)[0]
+                # print(pred_softmaxed)
+                argmax = torch.argmax(pred_softmaxed).item()
+                # print(argmax)
+                predicted_sign = self._subc_code_to_sign_dict[argmax]
+                conf = pred_softmaxed[argmax]
+                return (predicted_sign, conf)
 
-                tes_out: str = pytesseract.image_to_string(
-                    img,
-                    config=self._tesseract_additional_args)
-                if ret_debug_img:
-                    print('appending debug img')
-                    d.append(img)
-
-                # if we cannot get output, let's try one more time
-                if not tes_out:
-                    # oldfix
-                    img = crop_img(img_src, xscale=0.7, yscale=0.4)
-                    img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-                    img = cv2.GaussianBlur(img, (3, 3), 0)
-                    thresh = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
-                    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 6))
-                    opening = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=1)
-                    invert = 255 - opening
-                    # get tesseract output
-                    tes_out: str = pytesseract.image_to_string(
-                        invert,
-                        config=self._tesseract_additional_args)
-                    if ret_debug_img:
-                        print('appending debug img')
-                        d.append(invert)
-
-                if tes_out:
-                    # remove new lines and filter alpha and digits
-                    tes_out: str = tes_out.split('\n\n')[0]
-                    tes_out = ''.join(filter(lambda w: w.isalpha() or w.isdigit(), tes_out))
-                    tes_out = tes_out.lower().replace('j', '1').replace(
-                        'l', '1').replace('o', '0').replace('q', '0').replace('t', '1').replace(
-                        'c', '0').replace('i', '1').replace('a', '4')
-
-                    sign_and_confs_for_image = (
-                        sign_and_confs_for_image[0] + f'.{tes_out}', sign_and_confs_for_image[1]
-                    )
-                # print(tes_out)
-                # cv2.imshow(sign_and_confs_for_image[0] + '_invert', invert)
-                # cv2.imshow(sign_and_confs_for_image[0], img)
-                # cv2.waitKey(0)
-        if ret_debug_img:
-            return sign_and_confs_for_image, d
         return sign_and_confs_for_image
 
     def classify(

@@ -31,5 +31,5 @@ for file in data_path.iterdir():
         print(file)
         img = imread_rgb(file)
         # res = c.classify(img)
-        c._fixup_signs_with_text(img, ('3.25', 1))
+        c._fixup_speed_signs(img, ('3.25', 1))
 assert False, 'Check windows'
