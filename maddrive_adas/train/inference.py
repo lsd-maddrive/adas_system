@@ -9,18 +9,19 @@ from ..utils.bbox import diou_xywh_torch
 
 from concurrent.futures import ProcessPoolExecutor as PoolExecutor
 
+logger = logging.getLogger(__name__)
+
 
 class BaseInferExecutor:
     def __init__(self, model, device=None):
         self.model = model
         self.model_config = model.config
 
-        self.logger = logging.getLogger(self.__class__.__name__)
-        self.logger.debug(f'Loading model with config: {self.model_config}')
+        logger.debug(f"Loading model with config: {self.model_config}")
 
         self.device = device
         if self.device is None:
-            self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+            self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
         if isinstance(self.device, str):
             self.device = torch.device(self.device)
@@ -43,18 +44,12 @@ class BaseInferExecutor:
             InferExecutor: class for inference
         """
         loaded_data = torch.load(model_filepath)
-        config = loaded_data['config']
-        preprocessing = loaded_data["preprocessing"]
-        model_state = loaded_data['model_state_dict']
+        config = loaded_data["config"]
+        model_state = loaded_data["model_state_dict"]
 
         model_config = config["model"]
-        
-        kwargs.update({"preprocessing": preprocessing})
 
-        model = cls.from_config(
-            model_config=model_config,
-            **kwargs
-        )
+        model = cls.from_config(model_config=model_config, **kwargs)
         model.update_model_state(model_state)
         return model
 
@@ -65,7 +60,7 @@ class BaseInferExecutor:
         return self.infer_batch([image])[0]
 
     def infer_batch(self, images):
-        raise NotImplementedError('Method not implemented')
+        raise NotImplementedError("Method not implemented")
 
     @staticmethod
     def process_prediction(preds, preproc_data, preproc_ops):
@@ -94,13 +89,21 @@ class BaseInferExecutor:
 
 class InferExecutor(BaseInferExecutor):
     def __init__(
-        self, model, device=None, nms_threshold=0.6, conf_threshold=0.4, 
-        use_soft_nms=False, use_half_precision=False, n_processes=1, preprocessing=[]
+        self,
+        model,
+        device=None,
+        nms_threshold=0.6,
+        conf_threshold=0.4,
+        use_soft_nms=False,
+        use_half_precision=False,
+        n_processes=1,
     ):
         super().__init__(model=model, device=device)
 
+        logger.info(f"Using device {self.device}")
+
         self.n_processes = n_processes
-        self.model_hw = self.model_config['infer_sz_hw']
+        self.model_hw = self.model_config["infer_sz_hw"]
         self.use_half_precision = use_half_precision
         self.use_soft_nms = use_soft_nms
 
@@ -109,27 +112,23 @@ class InferExecutor(BaseInferExecutor):
 
         self.nms_threshold = nms_threshold
         self.conf_threshold = conf_threshold
-        self.labels = self.model_config['labels']
+        self.labels = self.model_config["labels"]
 
-        self._size_tnsr = torch.FloatTensor([
-            self.model_hw[1],
-            self.model_hw[0],
-            self.model_hw[1],
-            self.model_hw[0],
-        ]).view(1, 1, 4).to(self.device)
-        
-        self.preproc_ops = preprocessing
-        # self.preproc_ops = deserialize_preprocessing(self.model_config['preprocessing'])
-
-        # # Compatibility
-        # if 'image_2_tensor' in self.model_config:
-        #     self.image_2_tensor_op = deserialize_preprocessing([self.model_config['image_2_tensor']])[0]
-        #     self.preproc_ops.append(self.image_2_tensor_op)
-        
-        self.nms = TorchNMS(
-            iou=diou_xywh_torch,
-            iou_threshold=nms_threshold
+        self._size_tnsr = (
+            torch.FloatTensor(
+                [
+                    self.model_hw[1],
+                    self.model_hw[0],
+                    self.model_hw[1],
+                    self.model_hw[0],
+                ]
+            )
+            .view(1, 1, 4)
+            .to(self.device)
         )
+
+        self.preproc_ops = self.model_config["preprocessing"]
+        self.nms = TorchNMS(iou=diou_xywh_torch, iou_threshold=nms_threshold)
 
     def map_labels(self, label_ids):
         return [self.labels[id_] for id_ in label_ids]
@@ -152,7 +151,7 @@ class InferExecutor(BaseInferExecutor):
 
     def infer_batch(self, imgs_list):
         batch_tensor, preproc_data = self.preprocess_images(imgs_list, self.preproc_ops)
-        
+
         # NOTE - here we don`t apply shift and scale to all bboxes at once - just to demonstrate
         with torch.no_grad():
             batch_tensor = batch_tensor.to(self.device)
@@ -161,7 +160,7 @@ class InferExecutor(BaseInferExecutor):
 
             outputs = self.model(batch_tensor)
             outputs[..., :4] *= self._size_tnsr
-            
+
             if self.use_half_precision:
                 outputs = outputs.float()
 
@@ -177,8 +176,7 @@ class InferExecutor(BaseInferExecutor):
                     # Normalized
                     preds = output[output[..., 4] > self.conf_threshold]
                     fut = ex.submit(
-                        self.process_prediction, 
-                        preds, preproc_data[i], self.nms, self.preproc_ops
+                        self.process_prediction, preds, preproc_data[i], self.nms, self.preproc_ops
                     )
                     futures.append(fut)
 
@@ -191,9 +189,7 @@ class InferExecutor(BaseInferExecutor):
                 preds = output[output[..., 4] > self.conf_threshold]
                 # print(f'Received {preds.shape} predictions')
 
-                preds = self.process_prediction(
-                    preds, preproc_data[i], self.nms, self.preproc_ops
-                )
+                preds = self.process_prediction(preds, preproc_data[i], self.nms, self.preproc_ops)
                 result_list.append(preds)
 
         return result_list
@@ -201,21 +197,13 @@ class InferExecutor(BaseInferExecutor):
     @staticmethod
     def process_prediction(preds, preproc_data, nms, preproc_ops):
         if preds.shape[0] == 0:
-            return {
-                'bboxes': np.array([]),
-                'classes': np.array([]),
-                'scores': np.array([])
-            }
+            return {"bboxes": np.array([]), "classes": np.array([]), "scores": np.array([])}
 
         keep = nms.exec(preds)
-        
-        preds = preds[keep] #.cpu()
-        preds = {
-            'bboxes': preds[:, :4],
-            'classes': preds[:, 5].long(),
-            'scores': preds[:, 4]
-        }
-        
+
+        preds = preds[keep]  # .cpu()
+        preds = {"bboxes": preds[:, :4], "classes": preds[:, 5].long(), "scores": preds[:, 4]}
+
         for op in reversed(preproc_ops):
             preds = op.inverse_transform(preds=preds, data=preproc_data)
 

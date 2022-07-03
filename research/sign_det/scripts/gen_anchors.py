@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 import logging
 
-from maddrive_adas.train.datasets import ConcatDatasets, PreprocessedDataset, SignsOnlyDataset
+from maddrive_adas.train.datasets import get_datasets
 from maddrive_adas.train.operations import BboxValidationOp, LetterboxingOp
 
 logging.basicConfig(
@@ -27,35 +27,15 @@ PROJECT_ROOT = os.path.abspath(os.path.join(SUBPROJECT_ROOT, os.pardir, os.pardi
 CONFIG_DPATH = os.path.join(SUBPROJECT_ROOT, "config")
 
 
-def load_datasets(cfg):
+@hydra.main(config_path=CONFIG_DPATH, config_name="binary_detector")
+def main(cfg: DictConfig):
     preproc_ops = [
         LetterboxingOp(target_sz=cfg.model.infer_sz_hw),
         BboxValidationOp(),
     ]
 
-    train_datasets_descs = cfg.datasets.train
-    train_datasets = []
-
-    for train_ds_desc in train_datasets_descs:
-        if train_ds_desc.type == "signs":
-            dataset = SignsOnlyDataset(
-                root_dirpath=os.path.join(PROJECT_ROOT, train_ds_desc.path),
-                # cache_dirpath=os.path.join(PROJECT_ROOT, "_cache"),
-            )
-        else:
-            raise NotImplementedError(f"Type {train_ds_desc.type} not implemented")
-
-        train_datasets.append(dataset)
-
-    train_dataset = ConcatDatasets(train_datasets)
-    train_dataset = PreprocessedDataset(dataset=train_dataset, ops=preproc_ops)
-
-    return train_dataset
-
-
-@hydra.main(config_path=CONFIG_DPATH, config_name="binary_detector")
-def main(cfg: DictConfig):
-    train_dataset = load_datasets(cfg)
+    datasets = get_datasets(cfg, preproc_ops=preproc_ops, project_root=PROJECT_ROOT)
+    train_dataset = datasets["preprocessed"][0]
     target_dims = []
 
     print(f"Collecting bboxes from {len(train_dataset)} samples")
@@ -76,7 +56,6 @@ def main(cfg: DictConfig):
 
     logger.info(f"Anchors: {centroids_str}")
     print(f"Anchors: {centroids_str}")
-
 
 
 if __name__ == "__main__":

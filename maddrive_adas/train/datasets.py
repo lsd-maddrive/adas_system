@@ -1,3 +1,4 @@
+import logging
 import os
 import pickle
 
@@ -5,13 +6,15 @@ import xml.etree.ElementTree as ET
 import cv2
 import numpy as np
 
-import torch
 from torch.utils.data.dataset import Dataset
 import bisect
 
 from maddrive_adas.train.operations import Image2TensorOp
 
 from ..utils.torch_utils import image_2_tensor, array_2_tensor
+
+
+logger = logging.getLogger(__name__)
 
 
 class BaseImageDataset(object):
@@ -374,3 +377,58 @@ def replace_all_labels_2_one(instances, new_label):
             labels[new_label] += 1
 
     return instances, labels
+
+
+def get_datasets(cfg, preproc_ops, project_root, augment_obj=None):
+    result_datasets = {}
+
+    train_datasets_descs = cfg.datasets.train
+    train_datasets = []
+
+    for train_ds_desc in train_datasets_descs:
+        if train_ds_desc.type == "signs":
+            dataset = SignsOnlyDataset(
+                root_dirpath=os.path.join(project_root, train_ds_desc.path),
+                # cache_dirpath=os.path.join(PROJECT_ROOT, "_cache"),
+            )
+        else:
+            raise NotImplementedError(f"Type {train_ds_desc.type} not implemented")
+
+        train_datasets.append(dataset)
+
+    valid_datasets_descs = cfg.datasets.valid
+    valid_datasets = []
+
+    for valid_ds_desc in valid_datasets_descs:
+        if valid_ds_desc.type == "signs":
+            dataset = SignsOnlyDataset(
+                root_dirpath=os.path.join(project_root, valid_ds_desc.path),
+                # cache_dirpath=os.path.join(PROJECT_ROOT, "_cache"),
+            )
+        else:
+            raise NotImplementedError(f"Type {valid_ds_desc.type} not implemented")
+
+        valid_datasets.append(dataset)
+
+    # Adapters
+
+    train_dataset = ConcatDatasets(train_datasets)
+    valid_dataset = ConcatDatasets(valid_datasets)
+    result_datasets["raw"] = (train_dataset, valid_dataset)
+
+    train_dataset = PreprocessedDataset(dataset=train_dataset, ops=preproc_ops)
+    valid_dataset = PreprocessedDataset(dataset=valid_dataset, ops=preproc_ops)
+    result_datasets["preprocessed"] = (train_dataset, valid_dataset)
+
+    if augment_obj is not None:
+        train_dataset = AugmentedDataset(dataset=train_dataset, aug=augment_obj)
+        result_datasets["augmented"] = (train_dataset, valid_dataset)
+
+    train_dataset = Image2TensorDataset(train_dataset, max_targets=10)
+    valid_dataset = Image2TensorDataset(valid_dataset, max_targets=10)
+    result_datasets["tensored"] = (train_dataset, valid_dataset)
+
+    logger.info(f"Train dataset length: {len(train_dataset)}")
+    logger.info(f"Valid dataset length: {len(valid_dataset)}")
+
+    return result_datasets

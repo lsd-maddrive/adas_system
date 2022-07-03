@@ -1,8 +1,6 @@
 import torch
 from torch import nn
-import torch.nn.functional as F
 
-import numpy as np
 from .common import Conv_Bn_Activation, YoloLayer, get_region_boxes, Upsample, ResConv2dBatchLeaky
 
 from . base import BaseYolo4
@@ -53,14 +51,22 @@ class Yolo4Tiny(BaseYolo4):
     __name__ = 'Yolo4Tiny'
 
     def __init__(self, inference=False, **config):
+        # Arch dependent
+        self.strides = [16, 32]
+        self.n_outputs = 2
+
+        config["strides"] = self.strides
+        config["n_outputs"] = self.n_outputs
+
         super().__init__(**config)
 
         self.inference = inference
 
         n_classes = config['n_classes']
-        strides = config['strides']
         anchors = config['anchors']
         anchor_masks = config['anchor_masks']
+
+
 
         output_ch = (4 + 1 + n_classes) * 3
 
@@ -76,7 +82,7 @@ class Yolo4Tiny(BaseYolo4):
             anchor_mask=anchor_masks[0],
             num_classes=n_classes,
             anchors=anchors,
-            stride=strides[0],
+            stride=self.strides[0],
             inference=inference)
 
         # x32
@@ -88,7 +94,7 @@ class Yolo4Tiny(BaseYolo4):
             anchor_mask=anchor_masks[1],
             num_classes=n_classes,
             anchors=anchors,
-            stride=strides[1],
+            stride=self.strides[1],
             inference=inference)
 
     def forward(self, input):

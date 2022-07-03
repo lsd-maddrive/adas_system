@@ -5,15 +5,9 @@ import hydra
 import numpy as np
 import torch
 from catalyst import dl, metrics
-from catalyst import utils as cata_ut
-
 
 from clearml import Task
 from omegaconf import DictConfig, OmegaConf
-import hashlib
-import json
-
-from typing import Union
 
 import albumentations as albu
 import cv2
@@ -22,16 +16,14 @@ import numpy as np
 from torch import nn
 from torch.utils.data import DataLoader
 
-from maddrive_adas.train.datasets import (
-    Image2TensorDataset,
-    PreprocessedDataset,
-    SignsOnlyDataset,
-    ConcatDatasets,
-    AugmentedDataset,
-)
+from maddrive_adas.train.datasets import get_datasets
+
 from maddrive_adas.train import callbacks as cb
+from maddrive_adas.train.evaluation.base import MetricsEvaluator, BatchEvaluator
+from maddrive_adas.train.inference import InferExecutor
 from maddrive_adas.train.operations import BboxValidationOp, LetterboxingOp, Image2TensorOp
-from maddrive_adas.train.utils import construct_model
+from maddrive_adas.train.utils import construct_model, dict_hash, get_hydra_logs_dpath, get_n_workers, setup_train_project
+
 
 SUBPROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 PROJECT_ROOT = os.path.abspath(os.path.join(SUBPROJECT_ROOT, os.pardir, os.pardir))
@@ -41,108 +33,28 @@ CONFIG_DPATH = os.path.join(SUBPROJECT_ROOT, "config")
 logger = logging.getLogger(__name__)
 
 
-def get_loaders(cfg: DictConfig, preproc_ops: list):
+def get_loaders(cfg, datasets):
     num_workers = get_n_workers(cfg.num_workers)
     if num_workers > cfg.batch_size:
         logger.info(f"Redefine `num_workers` from {num_workers} to {cfg.batch_size}")
         num_workers = cfg.batch_size
 
-    # Train part
-
-    train_datasets_descs = cfg.datasets.train
-    train_datasets = []
-
-    for train_ds_desc in train_datasets_descs:
-        if train_ds_desc.type == "signs":
-            dataset = SignsOnlyDataset(
-                root_dirpath=os.path.join(PROJECT_ROOT, train_ds_desc.path),
-                # cache_dirpath=os.path.join(PROJECT_ROOT, "_cache"),
-            )
-        else:
-            raise NotImplementedError(f"Type {train_ds_desc.type} not implemented")
-
-        train_datasets.append(dataset)
-
-    train_dataset = ConcatDatasets(train_datasets)
-    train_dataset = PreprocessedDataset(dataset=train_dataset, ops=preproc_ops)
-
-    train_augmentations = AlbuAugmentation()
-    train_dataset = AugmentedDataset(dataset=train_dataset, aug=train_augmentations)
-
-    train_dataset = Image2TensorDataset(train_dataset, max_targets=10)
-
     train_cfg = {
-        "dataset": train_dataset,
+        "dataset": datasets["tensored"][0],
         "batch_size": cfg.batch_size,
         "num_workers": num_workers,
         "shuffle": True,
     }
     train_loader = DataLoader(**train_cfg)
 
-    # Valid part
-
-    valid_datasets_descs = cfg.datasets.valid
-    valid_datasets = []
-
-    for valid_ds_desc in valid_datasets_descs:
-        if valid_ds_desc.type == "signs":
-            dataset = SignsOnlyDataset(
-                root_dirpath=os.path.join(PROJECT_ROOT, valid_ds_desc.path),
-                # cache_dirpath=os.path.join(PROJECT_ROOT, "_cache"),
-            )
-        else:
-            raise NotImplementedError(f"Type {valid_ds_desc.type} not implemented")
-
-        valid_datasets.append(dataset)
-
-    valid_dataset = ConcatDatasets(valid_datasets)
-    valid_dataset = PreprocessedDataset(dataset=valid_dataset, ops=preproc_ops)
-    valid_dataset = Image2TensorDataset(valid_dataset, max_targets=10)
-
     valid_loader = DataLoader(
-        valid_dataset,
+        datasets["tensored"][1],
         batch_size=cfg.batch_size,
         num_workers=num_workers,
         shuffle=False,
     )
 
-    logger.info(f"Train dataset length: {len(train_dataset)}")
-    logger.info(f"Valid dataset length: {len(valid_dataset)}")
-
     return {"train": train_loader, "valid": valid_loader}
-
-
-def get_n_workers(num_workers: int) -> int:
-    import multiprocessing as mp
-
-    max_cpu_count = mp.cpu_count()
-    if num_workers < 0:
-        num_workers = max_cpu_count
-        logger.info(f"Parameter `num_workers` is set to {num_workers}")
-
-    num_workers = min(max_cpu_count, num_workers)
-
-    return num_workers
-
-
-def setup_train_project(project_root: str, seed: int):
-    CHECKPOINTS_DPATH = os.path.join(project_root, "torch_checkpoints")
-
-    # Setup checkpoints upload directory
-    torch.hub.set_dir(CHECKPOINTS_DPATH)
-
-    cata_ut.set_global_seed(seed)
-    cata_ut.torch.prepare_cudnn(deterministic=True, benchmark=True)
-
-
-def get_hydra_logs_dpath() -> str:
-    return os.path.join(os.getcwd(), "logs")
-
-
-def dict_hash(cfg: dict) -> str:
-    cfg_str = json.dumps(cfg)
-    hash_str = hashlib.md5(cfg_str.encode("utf-8")).hexdigest()
-    return hash_str
 
 
 def init_clearml(cfg: DictConfig):
@@ -197,7 +109,33 @@ def main(cfg: DictConfig):  # noqa: C901
         CHECKPOINTS_DPATH = os.path.join(PROJECT_ROOT, checkpoint_dname)
     os.makedirs(CHECKPOINTS_DPATH, exist_ok=True)
 
-    model = construct_model(OmegaConf.to_container(cfg.model, resolve=True))
+    # TODO prepare linked variant
+    preproc_ops = [
+        LetterboxingOp(target_sz=cfg.model.infer_sz_hw),
+        BboxValidationOp(),
+    ]
+    full_preproc_ops = [*preproc_ops, Image2TensorOp(scale_div=255)]
+
+    datasets = get_datasets(
+        cfg, preproc_ops=preproc_ops, project_root=PROJECT_ROOT, augment_obj=AlbuAugmentation()
+    )
+
+    model_config = OmegaConf.to_container(cfg.model, resolve=True)
+    model_config["preprocessing"] = full_preproc_ops
+
+    model = construct_model(model_config)
+    # NOTE - Enrich config woth arch info
+    model_config["strides"] = model.strides
+    model_config["n_outputs"] = len(model.strides)
+
+    # def restore_pretrained():
+    #     # Restore pretrained
+    #     BEST_CHECKPOINT_PATH = os.path.join(PROJECT_ROOT, "outputs", "2022-07-03", "14-33-16", "train_checkpoints", "signs_detector", "model.best.pth")
+    #     loaded_data = torch.load(BEST_CHECKPOINT_PATH)
+    #     model_state = loaded_data["model_state_dict"]
+    #     model.load_state_dict(model_state)
+
+    # restore_pretrained()
 
     optimizer = torch.optim.RAdam(lr=cfg.lr, params=model.parameters())
     # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
@@ -207,8 +145,23 @@ def main(cfg: DictConfig):  # noqa: C901
         optimizer=optimizer, T_0=20, T_mult=2, eta_min=1e-7, last_epoch=-1
     )
 
-    log_metrics = ["loss", "loss_obj", "loss_box", "loss_cls"]
     batch_size = cfg.batch_size
+
+    infer = InferExecutor.from_config(
+        model_config=model_config,
+        nms_threshold=0.5,
+        conf_threshold=0.001,
+    )
+    evaluator = BatchEvaluator(
+        infer=infer,
+        # We should put raw here to process source data
+        datasets=[datasets["raw"][1]],
+        batch_size=batch_size*3,
+        metrics_eval=MetricsEvaluator(labels=model_config["labels"]),
+    )
+
+    log_metrics = ["loss", "loss_obj", "loss_box", "loss_cls"]
+    log_val_metrics = ["ap50/sign", "map50", "ap75/sign", "map75"]
 
     class CustomRunner(dl.SupervisedRunner):
         def on_loader_start(self, runner: dl.IRunner):
@@ -216,6 +169,10 @@ def main(cfg: DictConfig):  # noqa: C901
             self.meters = {
                 key: metrics.AdditiveMetric(compute_on_call=False) for key in log_metrics
             }
+
+            if not self.is_train_loader:
+                for key in log_val_metrics:
+                    self.meters[key] = metrics.AdditiveMetric(compute_on_call=False)
 
         def handle_batch(self, batch) -> None:
             image_t, annots_t = batch["features"], batch["targets"]
@@ -246,56 +203,37 @@ def main(cfg: DictConfig):  # noqa: C901
         def on_loader_end(self, runner):
             for key in log_metrics:
                 self.loader_metrics[key] = self.meters[key].compute()[0]
-            super().on_loader_end(runner)
 
-        def on_epoch_end(self, runner):
-            super().on_epoch_end(runner)
+            if not self.is_train_loader:
+                if self.epoch_step >= cfg.skip_eval_epochs:
+                    # Evaluate by metrics
+                    evaluator.update_infer(self.model.state_dict())
+                    eval_metrics = evaluator.evaluate()
+
+                    for key in log_val_metrics:
+                        self.loader_metrics[key] = eval_metrics[key]
+                else:
+                    for key in log_val_metrics:
+                        # We maximize metrics - so set initial 0
+                        self.loader_metrics[key] = 0
+
+            super().on_loader_end(runner)
 
     runner = CustomRunner(input_key="features", output_key="heatmaps", target_key="targets")
 
-    # TODO prepare linked variant
-    preproc_ops = [
-        LetterboxingOp(target_sz=cfg.model.infer_sz_hw),
-        BboxValidationOp(),
-    ]
-
-    full_preproc_ops = [*preproc_ops, Image2TensorOp(scale_div=255)]
-
     # Save config to checkpoint
     checkpoint_save_dict = dict(
-        config=OmegaConf.to_container(cfg, resolve=True), preprocessing=full_preproc_ops
+        config=OmegaConf.to_container(cfg, resolve=True)
     )
     checkpoints_suffix = f"_{clearml_task.id}" if clearml_task is not None else ""
     logger.info(f"Custom checkpoints suffix: {checkpoints_suffix}")
-
-    additional_callbacks = []
-    # additional_callbacks.append(
-    #     cb.LogBestCheckpoint2ClearMLCallback(
-    #         logdir=CHECKPOINTS_DPATH,
-    #         loader_key="valid",
-    #         metric_key="loss",
-    #         minimize=True,
-    #         save_kwargs=checkpoint_save_dict,
-    #         clearml_task=clearml_task,
-    #     )
-    # )
-    additional_callbacks.append(
-        cb.CustomCheckpointCallback(
-            logdir=CHECKPOINTS_DPATH,
-            loader_key="valid",
-            metric_key="loss",
-            minimize=True,
-            topk=3,
-            save_dict=checkpoint_save_dict,
-        )
-    )
 
     runner.train(
         model=model,
         # criterion=criterion,
         optimizer=optimizer,
         scheduler=scheduler,
-        loaders=get_loaders(cfg, preproc_ops),
+        loaders=get_loaders(cfg, datasets),
         num_epochs=cfg.num_epochs,
         callbacks=[
             dl.OptimizerCallback(
@@ -305,7 +243,14 @@ def main(cfg: DictConfig):  # noqa: C901
                 grad_clip_params=dict(max_norm=2, norm_type=2),
             ),
             dl.SchedulerCallback(loader_key="valid", metric_key="loss"),
-            *additional_callbacks,
+            cb.CustomCheckpointCallback(
+                logdir=CHECKPOINTS_DPATH,
+                loader_key="valid",
+                metric_key="map75",
+                minimize=False,
+                topk=3,
+                save_dict=checkpoint_save_dict,
+            ),
         ],
         logdir=LOGS_DPATH,
         valid_loader="valid",
