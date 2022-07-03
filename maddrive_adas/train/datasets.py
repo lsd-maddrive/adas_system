@@ -54,8 +54,8 @@ class Image2TensorDataset(Dataset):
     def __getitem__(self, index):
         img, ann = self.dataset[index]
 
-        bboxes = np.array(ann['bboxes'])
-        labels = np.array(ann['labels'])
+        bboxes = np.array(ann["bboxes"])
+        labels = np.array(ann["labels"])
 
         # Set from config
         shaped_bboxes = np.zeros([self.max_targets, 5])
@@ -65,8 +65,8 @@ class Image2TensorDataset(Dataset):
             bboxes_count = min(bboxes_labels.shape[0], self.max_targets)
             shaped_bboxes[:bboxes_count] = bboxes_labels[:bboxes_count]
 
-        img, ann = self.op.transform(img, {'bboxes': shaped_bboxes})
-        return img, ann['bboxes']
+        img, ann = self.op.transform(img, {"bboxes": shaped_bboxes})
+        return img, ann["bboxes"]
 
     def __len__(self):
         return len(self.dataset)
@@ -244,10 +244,7 @@ class VocDataset(DetectionDataset):
 
         self.transform = transform
 
-        # TODO - remove from here
-        self.annot_data, labels_stat = replace_all_labels_2_one(self.annot_data, "sign")
-
-        self.set_labels(labels_stat.keys())
+        self.set_labels(labels)
 
         self.root_dirpath = root_dirpath
         self.img_dirname = img_dirname
@@ -289,44 +286,15 @@ class VocDataset(DetectionDataset):
 
         bboxes = np.array(bboxes, dtype=np.float)
         labels = np.array(labels, dtype=np.float)
-        if bboxes.shape[0] >= self.max_targets:
-            raise ValueError(f"Overflow of bboxes count: {bboxes.shape[0]}")
 
-        if self.transform is not None:
-            try:
-                transformed = self.transform(image=img, bboxes=bboxes, id=labels)
-            except Exception as e:
-                print(f"Failed to transform bboxes from img:\n{bboxes} / {labels} ({e})")
-                return None, None
+        annot = {
+            "width": ann_data["width"],
+            "height": ann_data["height"],
+            "bboxes": bboxes,
+            "labels": labels,
+        }
 
-            img = transformed["image"]
-            bboxes = np.array(transformed["bboxes"])
-            labels = np.array(transformed["id"])
-
-        if not self.mode_train:
-            target = {
-                "boxes": torch.as_tensor(bboxes, dtype=torch.float32),
-                "labels": torch.as_tensor(labels, dtype=torch.int64),
-                "image_id": torch.tensor([index]),
-                "area": (bboxes[:, 3]) * (bboxes[:, 2]),
-                "iscrowd": torch.zeros((bboxes.shape[0],), dtype=torch.int64),
-            }
-
-            return img, target
-
-        # [x, y, w, h, class_id]
-        shaped_bboxes = np.zeros([self.max_targets, 5])
-
-        if len(labels) > 0:
-            bboxes_labels = np.hstack((bboxes, labels[..., np.newaxis]))
-            bboxes_count = min(bboxes_labels.shape[0], self.max_targets)
-            shaped_bboxes[:bboxes_count] = bboxes_labels[:bboxes_count]
-
-        # # Preprocessing for training
-        # img = torch.from_numpy(img).div(255.0).permute(2, 0, 1)
-        # shaped_bboxes = torch.from_numpy(shaped_bboxes)
-
-        return img, shaped_bboxes
+        return img, annot
 
     def get_labels_stats(self):
         stats = {}
@@ -389,10 +357,16 @@ class VocDataset(DetectionDataset):
         return all_insts
 
 
+class SignsOnlyDataset(VocDataset):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+        self.annot_data, labels_stat = replace_all_labels_2_one(self.annot_data, "sign")
+        self.set_labels(labels_stat.keys())
+
+
 def replace_all_labels_2_one(instances, new_label):
-
     labels = {new_label: 0}
-
     for inst in instances:
         for obj in inst["objects"]:
             obj["name"] = new_label

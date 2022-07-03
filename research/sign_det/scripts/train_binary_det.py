@@ -23,12 +23,13 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 from maddrive_adas.train.datasets import (
+    Image2TensorDataset,
     PreprocessedDataset,
-    VocDataset,
+    SignsOnlyDataset,
     ConcatDatasets,
     AugmentedDataset,
 )
-from maddrive_adas.train.operations import BboxValidationOp, LetterboxingOp
+from maddrive_adas.train.operations import BboxValidationOp, LetterboxingOp, Image2TensorOp
 from maddrive_adas.train import callbacks as cb
 
 SUBPROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
@@ -39,7 +40,7 @@ CONFIG_DPATH = os.path.join(SUBPROJECT_ROOT, "config")
 logger = logging.getLogger(__name__)
 
 
-COMMON_PATH = 'maddrive_adas.sign_det.models'
+COMMON_PATH = "maddrive_adas.sign_det.models"
 
 
 def construct_model(d: dict, **default_kwargs: dict):
@@ -49,20 +50,20 @@ def construct_model(d: dict, **default_kwargs: dict):
     kwargs = d.copy()
     model_type = kwargs.pop("type")
 
-    if 'Yolo4' in model_type:
-        model_type = f'{COMMON_PATH}.yolo4.{model_type}'
+    if "Yolo4" in model_type:
+        model_type = f"{COMMON_PATH}.yolo4.{model_type}"
 
     for name, value in default_kwargs.items():
         kwargs.setdefault(name, value)
 
     constructor = pydoc.locate(model_type)
     if constructor is None:
-        raise NotImplementedError(f'Model {model_type} not found')
+        raise NotImplementedError(f"Model {model_type} not found")
 
     return constructor(**kwargs)
 
 
-def get_loaders(cfg: DictConfig):
+def get_loaders(cfg: DictConfig, preproc_ops: list):
     num_workers = get_n_workers(cfg.num_workers)
     if num_workers > cfg.batch_size:
         logger.info(f"Redefine `num_workers` from {num_workers} to {cfg.batch_size}")
@@ -74,24 +75,23 @@ def get_loaders(cfg: DictConfig):
     train_datasets = []
 
     for train_ds_desc in train_datasets_descs:
-        dataset = VocDataset(
-            root_dirpath=os.path.join(PROJECT_ROOT, train_ds_desc.path),
-            # cache_dirpath=os.path.join(PROJECT_ROOT, "_cache"),
-        )
+        if train_ds_desc.type == "signs":
+            dataset = SignsOnlyDataset(
+                root_dirpath=os.path.join(PROJECT_ROOT, train_ds_desc.path),
+                # cache_dirpath=os.path.join(PROJECT_ROOT, "_cache"),
+            )
+        else:
+            raise NotImplementedError(f"Type {train_ds_desc.type} not implemented")
 
         train_datasets.append(dataset)
 
     train_dataset = ConcatDatasets(train_datasets)
-
-    preproc_ops = [
-        LetterboxingOp(target_sz=cfg.model.infer_sz_hw),
-        BboxValidationOp(),
-    ]
-
     train_dataset = PreprocessedDataset(dataset=train_dataset, ops=preproc_ops)
 
     train_augmentations = AlbuAugmentation()
     train_dataset = AugmentedDataset(dataset=train_dataset, aug=train_augmentations)
+
+    train_dataset = Image2TensorDataset(train_dataset, max_targets=10)
 
     train_cfg = {
         "dataset": train_dataset,
@@ -101,20 +101,37 @@ def get_loaders(cfg: DictConfig):
     }
     train_loader = DataLoader(**train_cfg)
 
-    # Valid part - TODO
+    # Valid part
 
-    # valid_loader = DataLoader(
-    #     valid_dataset,
-    #     batch_size=cfg.batch_size,
-    #     num_workers=num_workers,
-    #     shuffle=False,
-    # )
+    valid_datasets_descs = cfg.datasets.valid
+    valid_datasets = []
+
+    for valid_ds_desc in valid_datasets_descs:
+        if valid_ds_desc.type == "signs":
+            dataset = SignsOnlyDataset(
+                root_dirpath=os.path.join(PROJECT_ROOT, valid_ds_desc.path),
+                # cache_dirpath=os.path.join(PROJECT_ROOT, "_cache"),
+            )
+        else:
+            raise NotImplementedError(f"Type {valid_ds_desc.type} not implemented")
+
+        valid_datasets.append(dataset)
+
+    valid_dataset = ConcatDatasets(valid_datasets)
+    valid_dataset = PreprocessedDataset(dataset=valid_dataset, ops=preproc_ops)
+    valid_dataset = Image2TensorDataset(valid_dataset, max_targets=10)
+
+    valid_loader = DataLoader(
+        valid_dataset,
+        batch_size=cfg.batch_size,
+        num_workers=num_workers,
+        shuffle=False,
+    )
 
     logger.info(f"Train dataset length: {len(train_dataset)}")
-    # logger.info(f"Valid dataset length: {len(valid_dataset)}")
+    logger.info(f"Valid dataset length: {len(valid_dataset)}")
 
-    # return {"train": train_loader, "valid": valid_loader}
-    return {"train": train_loader}
+    return {"train": train_loader, "valid": valid_loader}
 
 
 def get_n_workers(num_workers: int) -> int:
@@ -183,7 +200,7 @@ def init_clearml(cfg: DictConfig):
 def main(cfg: DictConfig):  # noqa: C901
     for env_name, value in cfg.envs.items():
         os.environ[env_name] = value
-    
+
     setup_train_project(PROJECT_ROOT, seed=cfg.seed)
 
     # Custom OmegaConf resolver
@@ -203,7 +220,7 @@ def main(cfg: DictConfig):  # noqa: C901
     os.makedirs(CHECKPOINTS_DPATH, exist_ok=True)
 
     model = construct_model(OmegaConf.to_container(cfg.model, resolve=True))
-    
+
     optimizer = torch.optim.RAdam(lr=cfg.lr, params=model.parameters())
     # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
     #     optimizer=optimizer, patience=10, factor=0.2, min_lr=1.0e-7, verbose=True
@@ -212,7 +229,8 @@ def main(cfg: DictConfig):  # noqa: C901
         optimizer=optimizer, T_0=20, T_mult=2, eta_min=1e-7, last_epoch=-1
     )
 
-    log_metrics = []
+    log_metrics = ["loss", "loss_obj", "loss_box", "loss_cls"]
+    batch_size = cfg.batch_size
 
     class CustomRunner(dl.SupervisedRunner):
         def on_loader_start(self, runner: dl.IRunner):
@@ -222,23 +240,29 @@ def main(cfg: DictConfig):  # noqa: C901
             }
 
         def handle_batch(self, batch) -> None:
-            image_t, annots_t = batch
+            image_t, annots_t = batch["features"], batch["targets"]
 
-            # Loss computation
-            loss_div = batch_size
-            if "pafs" in saved_4_loss:
-                loss_div = loss_div * 2
+            preds_t = self.model(image_t)
+
+            main_loss, loss_parts = model.loss(preds_t, annots_t)
+            if torch.isnan(main_loss):
+                raise ValueError("Train Loss turned nan")
 
             self.batch = {
-                "heatmaps": hm_pred_t,
-                "targets": points_t,
+                "predictions": preds_t,
+                "targets": annots_t,
             }
 
-            self.batch_metrics.update({"loss": hm_loss + paf_loss})
-            self.batch_metrics.update({"hm_loss": hm_loss})
-            self.batch_metrics.update({"paf_loss": paf_loss})
+            self.batch_metrics.update({"loss": main_loss})
+            for loss_part_name, loss_part_value in loss_parts.items():
+                self.batch_metrics.update({f"loss_{loss_part_name}": loss_part_value})
 
+            # Update epoch metrics
             for key in log_metrics:
+                if key not in self.batch_metrics:
+                    self.meters[key].update(0, batch_size)
+                    continue
+                
                 self.meters[key].update(self.batch_metrics[key].item(), batch_size)
 
         def on_loader_end(self, runner):
@@ -251,22 +275,32 @@ def main(cfg: DictConfig):  # noqa: C901
 
     runner = CustomRunner(input_key="features", output_key="heatmaps", target_key="targets")
 
+    # TODO prepare linked variant
+    preproc_ops = [
+        LetterboxingOp(target_sz=cfg.model.infer_sz_hw),
+        BboxValidationOp(),
+    ]
+
+    full_preproc_ops = [*preproc_ops, Image2TensorOp(scale_div=255)]
+
     # Save config to checkpoint
-    checkpoint_save_dict = dict(config=OmegaConf.to_container(cfg, resolve=True))
+    checkpoint_save_dict = dict(
+        config=OmegaConf.to_container(cfg, resolve=True), preprocessing=full_preproc_ops
+    )
     checkpoints_suffix = f"_{clearml_task.id}" if clearml_task is not None else ""
     logger.info(f"Custom checkpoints suffix: {checkpoints_suffix}")
 
     additional_callbacks = []
-    additional_callbacks.append(
-        cb.LogBestCheckpoint2ClearMLCallback(
-            logdir=CHECKPOINTS_DPATH,
-            loader_key="valid",
-            metric_key="loss",
-            minimize=True,
-            save_kwargs=checkpoint_save_dict,
-            clearml_task=clearml_task,
-        )
-    )
+    # additional_callbacks.append(
+    #     cb.LogBestCheckpoint2ClearMLCallback(
+    #         logdir=CHECKPOINTS_DPATH,
+    #         loader_key="valid",
+    #         metric_key="loss",
+    #         minimize=True,
+    #         save_kwargs=checkpoint_save_dict,
+    #         clearml_task=clearml_task,
+    #     )
+    # )
     additional_callbacks.append(
         cb.CustomCheckpointCallback(
             logdir=CHECKPOINTS_DPATH,
@@ -283,7 +317,7 @@ def main(cfg: DictConfig):  # noqa: C901
         # criterion=criterion,
         optimizer=optimizer,
         scheduler=scheduler,
-        loaders=get_loaders(cfg),
+        loaders=get_loaders(cfg, preproc_ops),
         num_epochs=cfg.num_epochs,
         callbacks=[
             dl.OptimizerCallback(
@@ -293,29 +327,30 @@ def main(cfg: DictConfig):  # noqa: C901
                 grad_clip_params=dict(max_norm=2, norm_type=2),
             ),
             dl.SchedulerCallback(loader_key="valid", metric_key="loss"),
-            *additional_callbacks,
+            *additional_callbacks
         ],
         logdir=LOGS_DPATH,
         valid_loader="valid",
         valid_metric="loss",
         minimize_valid_metric=True,
         verbose=True,
-        load_best_on_end=True,
+        load_best_on_end=False,
         timeit=cfg.time_profiling,
+        seed=cfg.seed
     )
 
 
 class AlbuAugmentation:
     def __init__(self, **config):
-        self.fill_value = config.get('fill_value', 127)
-        self.min_area_px = config.get('min_area_px', 10)
-        self.min_visibility = config.get('min_visibility', 0.1)
+        self.fill_value = config.get("fill_value", 127)
+        self.min_area_px = config.get("min_area_px", 10)
+        self.min_visibility = config.get("min_visibility", 0.1)
 
         if not isinstance(self.fill_value, (list, tuple, np.ndarray)):
-            self.fill_value = [self.fill_value]*3
+            self.fill_value = [self.fill_value] * 3
 
         self.description = [
-            albu.ToGray(p=.3),
+            albu.ToGray(p=0.3),
             albu.OneOf(
                 [
                     albu.GaussNoise(p=0.5),
@@ -341,7 +376,7 @@ class AlbuAugmentation:
                 ],
                 p=0.3,
             ),
-            albu.HueSaturationValue(p=.3),
+            albu.HueSaturationValue(p=0.3),
             albu.ShiftScaleRotate(
                 shift_limit=0.2,
                 scale_limit=0.2,

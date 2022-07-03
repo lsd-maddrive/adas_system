@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import torch
 from ..utils import image as imut
 from ..utils.bbox import clip_xywh_bboxes
 
@@ -123,10 +124,12 @@ class LetterboxingOp(BasePreprocessingOp):
             target_sz=self.target_sz,
             background=self.fill_value,
         )
-
+        
         if ann is not None:
             # Update
-            ann["height"], ann["width"] = img.shape[:2]
+            h, w = img.shape[:2]
+            ann["height"] = h
+            ann["width"] = w
             if "instance_masks" in ann:
                 mask = ann["instance_masks"]
                 mask, mask_params = imut.letterbox(
@@ -217,7 +220,7 @@ class BboxValidationOp(BasePreprocessingOp):
 
         return bboxes
 
-    def transform(self, img, ann=None, data=None):
+    def transform(self, img, ann=None, data=None):        
         if ann is not None:
             if "bboxes" in ann and "labels" in ann:
                 bboxes = ann["bboxes"]
@@ -229,7 +232,7 @@ class BboxValidationOp(BasePreprocessingOp):
                     ann["labels"] = np.array(labels)[mask]
                     ann["bboxes"] = self._validate_bboxes(bboxes, img.shape[:2])
                 else:
-                    ann['bboxes'] = np.array((0, 4))
+                    ann['bboxes'] = np.zeros((0, 4))
 
             if "bboxes" in ann:
                 bboxes = ann["bboxes"]
@@ -237,9 +240,10 @@ class BboxValidationOp(BasePreprocessingOp):
                     # Remove bboxes that are 0 width/height
                     mask = np.prod(bboxes[:, 2:4], axis=1) > 0
                     bboxes = bboxes[mask]
+                    
                     ann["bboxes"] = self._validate_bboxes(bboxes, img.shape[:2])
                 else:
-                    ann['bboxes'] = np.array((0, 4))
+                    ann['bboxes'] = np.zeros((0, 4))
 
             if "bboxes_labels" in ann:
                 bboxes_labels = ann["bboxes_labels"]

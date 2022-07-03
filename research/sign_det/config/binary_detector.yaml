@@ -5,13 +5,13 @@ datasets:
     - name: rtsd-voc-train
       # Relative to PROJECT_ROOT
       path: data/rtsd-voc-train
-      type: voc
+      type: signs
       # Next are type dependent
 
-  test:
+  valid:
     - name: rtsd-voc-test
       path: data/rtsd-voc-test
-      type: voc
+      type: signs
   
 
 model:
@@ -36,15 +36,15 @@ model:
     ciou_ratio: 1
     gt_match_max_ratio: 4
     
-    bbox_rate: 0.05
+    bbox_rate: 0.1
     cls_rate: 0.58
     obj_rate: 1.0
 
 
 time_profiling: false
 num_epochs: 1000
-lr: 1.0e-3
-num_workers: 0
+lr: 3.0e-4
+num_workers: -1
 batch_size: 32
 
 seed: 42

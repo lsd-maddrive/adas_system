@@ -26,6 +26,10 @@ except ImportError:
     thop = None
 
 
+def get_model_device(model):
+    return next(model.parameters()).device
+
+
 def array_2_tensor(arr):
     return torch.from_numpy(arr)
 

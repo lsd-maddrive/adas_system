@@ -144,3 +144,4 @@ dmypy.json
 **/.vscode
 /_cache
 /outputs
+/train_checkpoints
