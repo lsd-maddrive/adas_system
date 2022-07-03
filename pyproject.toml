@@ -16,6 +16,7 @@ packages = [
 ]
 
 [tool.poetry.scripts]
+mdda-cityscapes-download = "maddrive_adas.cli.cityscapes_download:main"
 mdda-rtsd-download = "maddrive_adas.cli.rtsd_download:main"
 mdda-rtsd-update-dataset = "maddrive_adas.cli.rtsd_convert_dataset:main"
 

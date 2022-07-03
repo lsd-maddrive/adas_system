@@ -15,8 +15,7 @@ def imread_rgb(fpath):
         logger.critical(
             f'{__name__} Unable to read img.'
         )
-        assert False, f'Verify image path: {fpath}'
-        return img
+        raise ValueError(f'Verify image path: {fpath}')
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     return img
 

@@ -26,6 +26,15 @@ except ImportError:
     thop = None
 
 
+
+def set_half_precision(model):
+    model.half()
+    for layer in model.modules():
+        if isinstance(layer, nn.BatchNorm2d):
+            layer.float()
+
+
+
 def get_model_device(model):
     return next(model.parameters()).device
 

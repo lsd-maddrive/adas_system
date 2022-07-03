@@ -29,8 +29,9 @@ from maddrive_adas.train.datasets import (
     ConcatDatasets,
     AugmentedDataset,
 )
-from maddrive_adas.train.operations import BboxValidationOp, LetterboxingOp, Image2TensorOp
 from maddrive_adas.train import callbacks as cb
+from maddrive_adas.train.operations import BboxValidationOp, LetterboxingOp, Image2TensorOp
+from maddrive_adas.train.utils import construct_model
 
 SUBPROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 PROJECT_ROOT = os.path.abspath(os.path.join(SUBPROJECT_ROOT, os.pardir, os.pardir))
@@ -38,29 +39,6 @@ PROJECT_ROOT = os.path.abspath(os.path.join(SUBPROJECT_ROOT, os.pardir, os.pardi
 CONFIG_DPATH = os.path.join(SUBPROJECT_ROOT, "config")
 
 logger = logging.getLogger(__name__)
-
-
-COMMON_PATH = "maddrive_adas.sign_det.models"
-
-
-def construct_model(d: dict, **default_kwargs: dict):
-    import pydoc
-
-    assert isinstance(d, dict) and "type" in d
-    kwargs = d.copy()
-    model_type = kwargs.pop("type")
-
-    if "Yolo4" in model_type:
-        model_type = f"{COMMON_PATH}.yolo4.{model_type}"
-
-    for name, value in default_kwargs.items():
-        kwargs.setdefault(name, value)
-
-    constructor = pydoc.locate(model_type)
-    if constructor is None:
-        raise NotImplementedError(f"Model {model_type} not found")
-
-    return constructor(**kwargs)
 
 
 def get_loaders(cfg: DictConfig, preproc_ops: list):
@@ -262,7 +240,7 @@ def main(cfg: DictConfig):  # noqa: C901
                 if key not in self.batch_metrics:
                     self.meters[key].update(0, batch_size)
                     continue
-                
+
                 self.meters[key].update(self.batch_metrics[key].item(), batch_size)
 
         def on_loader_end(self, runner):
@@ -327,7 +305,7 @@ def main(cfg: DictConfig):  # noqa: C901
                 grad_clip_params=dict(max_norm=2, norm_type=2),
             ),
             dl.SchedulerCallback(loader_key="valid", metric_key="loss"),
-            *additional_callbacks
+            *additional_callbacks,
         ],
         logdir=LOGS_DPATH,
         valid_loader="valid",
@@ -336,7 +314,7 @@ def main(cfg: DictConfig):  # noqa: C901
         verbose=True,
         load_best_on_end=False,
         timeit=cfg.time_profiling,
-        seed=cfg.seed
+        seed=cfg.seed,
     )
 
 
