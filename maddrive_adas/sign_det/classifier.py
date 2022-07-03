@@ -1,12 +1,13 @@
 from typing import List, Tuple, Union
 import json
 
-import torch
 import numpy as np
+import torch
 
-from .base import AbstractSignClassifier, DetectedInstance
-from maddrive_adas.utils.transforms import get_minimal_and_augment_transforms
 from maddrive_adas.utils.models import get_model_and_img_size
+from maddrive_adas.utils.transforms import get_minimal_and_augment_transforms
+from .base import AbstractSignClassifier, DetectedInstance
+
 
 REQUIRED_ARCHIVE_KEYS = ['model', 'centroid_location', 'model_config']
 SUBC_REQUIRED_KEYS = ['model', 'model_config', 'code_to_sign_dict']

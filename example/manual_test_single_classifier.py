@@ -19,10 +19,8 @@ c: AbstractSignClassifier = EncoderBasedClassifier(
 def test_classifier():
     DATA_DIR = PROJECT_ROOT / 'SignDetectorAndClassifier' / 'data'
 
-    # img1 = imread_rgb(DATA_DIR / 'additional_sign' / '2.4_1.png')
-    # img2 = imread_rgb(DATA_DIR / 'additional_sign' / '1.31_1.png')
-    img1 = imread_rgb(DATA_DIR / 'additional_sign' / '3.24.100_1.png')
-    img2 = imread_rgb(DATA_DIR / 'additional_sign' / '3.24.100_2.png')
+    img1 = imread_rgb(DATA_DIR / 'additional_sign' / '2.4_1.png')
+    img2 = imread_rgb(DATA_DIR / 'additional_sign' / '1.31_1.png')
     img3 = imread_rgb(DATA_DIR / 'additional_sign' / '3.24.100_3.png')
     classify_batch_arg: List[DetectedInstance] = [
         DetectedInstance(img1),
