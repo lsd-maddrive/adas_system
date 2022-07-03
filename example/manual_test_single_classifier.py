@@ -9,7 +9,7 @@ from maddrive_adas.sign_det.base import (
 from maddrive_adas.sign_det.classifier import EncoderBasedClassifier
 
 PROJECT_ROOT = Path('.')
-CLASSIFIER_ARCHIVE = PROJECT_ROOT / './SignDetectorAndClassifier/data/saved_model'
+CLASSIFIER_ARCHIVE = PROJECT_ROOT / 'encoder_archive'
 
 c: AbstractSignClassifier = EncoderBasedClassifier(
     config_path=str(CLASSIFIER_ARCHIVE)

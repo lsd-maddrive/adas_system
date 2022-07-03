@@ -2,7 +2,8 @@
 .git/
 nohup.out
 
-SignDetectorAndClassifier/**
+SignDetectorAndClassifier/data/**
+SignDetectorAndClassifier/notebooks/**
 !SignDetectorAndClassifier/notebooks/*.ipynb
 !SignDetectorAndClassifier/encoder_config.json
 new 1.txt

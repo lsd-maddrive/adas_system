@@ -19,14 +19,21 @@ class BasicSignsDetectorAndClassifier(AbstractComposer):
         self._detector: AbstractSignDetector = detector
         self._classifier: AbstractSignClassifier = classifier
 
-    def detect_and_classify_batch(self, imgs: List[np.ndarray]) -> \
-            List[Tuple[DetectedInstance, Tuple[str, float]]]:
+    def detect_and_classify_batch(
+        self,
+        imgs: List[np.ndarray],
+        **kwargs
+    ) -> List[Tuple[DetectedInstance, Tuple[str, float]]]:
 
-        detections: List[DetectedInstance] = self._detector.detect_batch(imgs)
+        detections: List[DetectedInstance] = self._detector.detect_batch(imgs, **kwargs)
         classification_res_per_detected_instaces: List = \
-            self._classifier.classify_batch(detections)
+            self._classifier.classify_batch(detections, **kwargs)
 
         return classification_res_per_detected_instaces
 
-    def detect_and_classify(self, img: np.ndarray) -> Tuple[DetectedInstance, Tuple[str, float]]:
-        return self.detect_and_classify_batch([img])[0]
+    def detect_and_classify(
+        self,
+        img: np.ndarray,
+        **kwargs
+    ) -> Tuple[DetectedInstance, Tuple[str, float]]:
+        return self.detect_and_classify_batch([img], **kwargs)[0]

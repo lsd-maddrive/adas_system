@@ -12,8 +12,8 @@ from maddrive_adas.sign_det.classifier import EncoderBasedClassifier
 from maddrive_adas.sign_det.composer import BasicSignsDetectorAndClassifier
 
 PROJECT_ROOT = Path('.')
-DETECTOR_ARCHIVE = PROJECT_ROOT / 'maddrive_adas' / 'sign_det' / 'detector_config_img_size'
-CLASSIFIER_ARCHIVE = PROJECT_ROOT / './SignDetectorAndClassifier/data/saved_model'
+DETECTOR_ARCHIVE = PROJECT_ROOT / 'detector_archive'
+CLASSIFIER_ARCHIVE = PROJECT_ROOT / 'encoder_archive'
 
 c: AbstractSignClassifier = EncoderBasedClassifier(
     config_path=str(CLASSIFIER_ARCHIVE)

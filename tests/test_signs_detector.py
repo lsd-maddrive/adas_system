@@ -10,10 +10,10 @@ from maddrive_adas.sign_det.base import (
 
 PROJECT_ROOT: Path = Path('.')
 SIGN_DETECTOR_MODEL_ARCHIVE: str = str(
-    PROJECT_ROOT / 'maddrive_adas' / 'sign_det' / 'detector_config_img_size'
+    PROJECT_ROOT / 'detector_archive'
 )
 SIGN_CLASSIFIER_MODEL_ARCHIVE: str = str(
-    PROJECT_ROOT / 'maddrive_adas' / 'sign_det' / 'encoder_cl_config'
+    PROJECT_ROOT / 'encoder_archive'
 )
 
 detector: AbstractSignDetector = YoloV5Detector(
@@ -33,13 +33,16 @@ composer: AbstractComposer = BasicSignsDetectorAndClassifier(
 
 
 def test_detector_base_execution_img1(detector_test_image1):
-    detections = detector.detect(detector_test_image1)
-    assert len(detections.confs) == 3
+    detections = detector.detect(
+        detector_test_image1,
+        d_conf_thres=0.11,
+        d_iou_thres=0.12)
+    assert len(detections.confs) == 2
 
 
 def test_detector_base_execution_img2(detector_test_image2):
     detections = detector.detect(detector_test_image2)
-    assert len(detections.confs) == 3
+    assert len(detections.confs) == 2
 
 
 def test_detector_base_execution_batch(
