@@ -1,0 +1,164 @@
+import logging
+from shutil import copyfile
+import click
+import os
+import cv2
+
+import pandas as pd
+import tqdm
+
+logger = logging.getLogger(__name__)
+
+
+DEFAULT_DATA_DIRECTORY = os.path.abspath(os.path.join(os.curdir, "data"))
+
+
+@click.command()
+@click.option(
+    "--data-dir",
+    "-d",
+    default=DEFAULT_DATA_DIRECTORY,
+    show_default=True,
+    type=str,
+    help="Path to directory to search for 'rtsd' directory and generate 'rtsd-voc'",
+)
+def main(data_dir):
+    data_root_path = os.path.join(data_dir, "rtsd", "detection")
+    dst_data_dir = os.path.join(data_dir, "rtsd-parsed")
+
+    if not os.path.exists(data_root_path):
+        raise ValueError(f"Directory '{data_root_path}' not found")
+
+    frames_dirs = ["rtsd-d1-frames", "rtsd-d2-frames", "rtsd-d3-frames"]
+    gt_train_frame_fpaths = []
+    gt_test_frame_fpaths = []
+
+    for frames_dir in frames_dirs:
+        frames_train_root_path = os.path.join(data_root_path, frames_dir, "train")
+        frames_test_root_path = os.path.join(data_root_path, frames_dir, "test")
+
+        gt_train_frame_fpaths += [
+            os.path.join(frames_train_root_path, i) for i in os.listdir(frames_train_root_path)
+        ]
+        gt_test_frame_fpaths += [
+            os.path.join(frames_test_root_path, i) for i in os.listdir(frames_test_root_path)
+        ]
+
+    gt_paths = ["rtsd-d1-gt", "rtsd-d2-gt", "rtsd-d3-gt"]
+    unique_classes = []
+
+    gt_train_csv_fname = "train_gt.csv"
+    gt_test_csv_fname = "test_gt.csv"
+
+    gt_train_annot_fpaths = []
+    gt_test_annot_fpaths = []
+
+    def pandas_get_unique_classes(csv_fpath):
+        data = pd.read_csv(csv_fpath)
+        unique_classes = data["sign_class"].unique().tolist()
+        return unique_classes
+
+    for gt_path in gt_paths:
+        gt_dirpath = os.path.join(data_root_path, gt_path)
+        local_classes = os.listdir(gt_dirpath)
+
+        for local_class in local_classes:
+            class_dirpath = os.path.join(gt_dirpath, local_class)
+
+            if os.path.isdir(class_dirpath):
+                gt_train_annot_fpath = os.path.join(class_dirpath, gt_train_csv_fname)
+                gt_test_annot_fpath = os.path.join(class_dirpath, gt_test_csv_fname)
+
+                train_classes = pandas_get_unique_classes(gt_train_annot_fpath)
+                test_classes = pandas_get_unique_classes(gt_test_annot_fpath)
+
+                for _class in train_classes:
+                    class_name = local_class + "/" + _class
+
+                    if class_name not in unique_classes:
+                        unique_classes.append(class_name)
+
+                gt_train_annot_fpaths += [(local_class, gt_train_annot_fpath)]
+                gt_test_annot_fpaths += [(local_class, gt_test_annot_fpath)]
+
+    logger.info(gt_train_annot_fpaths)
+    logger.info(gt_test_annot_fpaths)
+
+    dst_images_dir = os.path.join(dst_data_dir, "images")
+
+    logger.info("--- Copy frames to dst folder ---")
+
+    def copy_2_images_dir(dst_dir, src_fpaths):
+        if not os.path.exists(dst_dir):
+            os.makedirs(dst_dir)
+
+        for frame_fpath in tqdm.tqdm(src_fpaths):
+            dst_fpath = os.path.join(dst_dir, os.path.basename(frame_fpath))
+            if not os.path.exists(dst_fpath):
+                copyfile(frame_fpath, dst_fpath)
+
+    copy_2_images_dir(dst_images_dir, gt_train_frame_fpaths)
+    copy_2_images_dir(dst_images_dir, gt_test_frame_fpaths)
+
+    FILENAME_KEY = "filename"
+    LEFT_X_KEY = "x_from"
+    UUPPER_Y_KEY = "y_from"
+    WIDTH_KEY = "width"
+    HEIGHT_KEY = "height"
+    SIGN_CLS_KEY = "sign_class"
+
+    logger.info("--- Reading annotations ---")
+
+    def read_annotations(list_annot_fpath):
+        checked_files = {}
+        for annot in tqdm.tqdm(list_annot_fpath):
+            class_name, annot_fpath = annot
+
+            df = pd.read_csv(annot_fpath)
+            for index, row in df.iterrows():
+                fname = row[FILENAME_KEY]
+                xmin = int(row[LEFT_X_KEY])
+                ymin = int(row[UUPPER_Y_KEY])
+                xmax = int(xmin) + int(row[WIDTH_KEY])
+                ymax = int(ymin) + int(row[HEIGHT_KEY])
+
+                full_cls_name = class_name + "/" + row[SIGN_CLS_KEY]
+                info = (xmin, ymin, xmax, ymax, full_cls_name)
+
+                if fname in checked_files and info not in checked_files[fname]:
+                    checked_files[fname].append(info)
+                else:
+                    checked_files[fname] = [info]
+
+        return checked_files
+
+    def append_frames_wo_annot(checked_files, frames_fpath_list):
+        for fpath in frames_fpath_list:
+            fname = os.path.basename(fpath)
+            if fname not in checked_files:
+                checked_files[fname] = None
+
+    train_checked_files = read_annotations(gt_train_annot_fpaths)
+    test_checked_files = read_annotations(gt_test_annot_fpaths)
+
+    logger.info("--- Append frames without annotation ---")
+
+    append_frames_wo_annot(train_checked_files, gt_train_frame_fpaths)
+    append_frames_wo_annot(test_checked_files, gt_test_frame_fpaths)
+
+    logger.info("--- Creating annotations ---")
+
+    def export_to_csv(checked_files, images_dpath, dst_fpath):
+        rows = []
+        
+        for fname in tqdm.tqdm(checked_files.keys()):
+            img_fpath = os.path.join(images_dpath, fname)
+            # print('Reading {}'.format(img_fpath))
+            img_h, img_w, img_c = cv2.imread(img_fpath).shape
+
+            obj_info = {"img_h": img_h, "img_w": img_w, "fname": fname, ""}
+
+    # TODO
+
+    vc.generate_annotations(dst_train_data_dir, train_checked_files)
+    vc.generate_annotations(dst_test_data_dir, test_checked_files)

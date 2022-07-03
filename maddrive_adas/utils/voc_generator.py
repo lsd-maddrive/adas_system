@@ -5,8 +5,8 @@ from lxml import etree as ET
 from shutil import copyfile
 
 
-def copy_2_images_dir(root_dir, src_fpaths):
-    imgs_directory = os.path.join(root_dir, "Images")
+def copy_2_images_dir(root_dir, src_fpaths, subdir="Images"):
+    imgs_directory = os.path.join(root_dir, subdir)
     if not os.path.exists(imgs_directory):
         os.makedirs(imgs_directory)
 

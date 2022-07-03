@@ -1,6 +1,8 @@
 import logging
+from shutil import copyfile
 import click
 import os
+import cv2
 
 import pandas as pd
 import tqdm
@@ -24,7 +26,6 @@ DEFAULT_DATA_DIRECTORY = os.path.abspath(os.path.join(os.curdir, "data"))
 )
 def main(data_dir):
     data_root_path = os.path.join(data_dir, "rtsd", "detection")
-    dst_data_dir = os.path.join(data_dir, "rtsd-voc")
 
     if not os.path.exists(data_root_path):
         raise ValueError(f"Directory '{data_root_path}' not found")
@@ -76,7 +77,7 @@ def main(data_dir):
                     class_name = local_class + "/" + _class
 
                     if class_name not in unique_classes:
-                        unique_classes += [class_name]
+                        unique_classes.append(class_name)
 
                 gt_train_annot_fpaths += [(local_class, gt_train_annot_fpath)]
                 gt_test_annot_fpaths += [(local_class, gt_test_annot_fpath)]
@@ -84,10 +85,10 @@ def main(data_dir):
     logger.info(gt_train_annot_fpaths)
     logger.info(gt_test_annot_fpaths)
 
-    dst_train_data_dir = dst_data_dir + "_Train"
-    dst_test_data_dir = dst_data_dir + "_Test"
+    dst_train_data_dir = os.path.join(data_dir, "rtsd-voc-train")
+    dst_test_data_dir = os.path.join(data_dir, "rtsd-voc-test")
 
-    print("--- Copy frames to dst folder ---")
+    logger.info("--- Copy frames to dst folder ---")
 
     vc.copy_2_images_dir(dst_train_data_dir, gt_train_frame_fpaths)
     vc.copy_2_images_dir(dst_test_data_dir, gt_test_frame_fpaths)
@@ -99,7 +100,7 @@ def main(data_dir):
     HEIGHT_KEY = "height"
     SIGN_CLS_KEY = "sign_class"
 
-    print("--- Reading annotations ---")
+    logger.info("--- Reading annotations ---")
 
     def read_annotations(list_annot_fpath):
         checked_files = {}
@@ -118,7 +119,7 @@ def main(data_dir):
                 info = (xmin, ymin, xmax, ymax, full_cls_name)
 
                 if fname in checked_files and info not in checked_files[fname]:
-                    checked_files[fname] += [info]
+                    checked_files[fname].append(info)
                 else:
                     checked_files[fname] = [info]
 

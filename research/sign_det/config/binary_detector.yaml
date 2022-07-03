@@ -1,0 +1,58 @@
+project_name: signs_detection
+
+datasets:
+  train:
+    - name: rtsd-voc-train
+      # Relative to PROJECT_ROOT
+      path: data/rtsd-voc-train
+      type: voc
+      # Next are type dependent
+
+  test:
+    - name: rtsd-voc-test
+      path: data/rtsd-voc-test
+      type: voc
+  
+
+model:
+  # Better use definite names, not paths like other objects - better backward compatibility
+  type: Yolo4Tiny
+
+  strides: [16, 32]
+  anchors: [4,5, 11,16, 24,27, 30,38, 44,47, 58,63]
+  anchor_masks: [[0, 1, 2], [3, 4, 5]]
+
+  n_outputs: ${len:${model.strides}}
+  n_classes : ${len:${model.labels}}
+
+  infer_sz_hw: [416, 640]
+  channels: 3
+  labels: [
+    "sign"
+  ]
+
+  # Loss
+  bbox_loss:
+    ciou_ratio: 1
+    gt_match_max_ratio: 4
+    
+    bbox_rate: 0.05
+    cls_rate: 0.58
+    obj_rate: 1.0
+
+
+time_profiling: false
+num_epochs: 1000
+lr: 1.0e-3
+num_workers: 0
+batch_size: 32
+
+seed: 42
+
+enable_clearml: True
+envs:
+  CLEARML_API_HOST: http://localhost:8008
+  CLEARML_FILES_HOST: http://localhost:8081
+  CLEARML_API_ACCESS_KEY: P5Q10DEE62K2BZZISU6N
+  CLEARML_API_SECRET_KEY: 3wHQZtKliSJDsSxomC6FBZ3aGfpjGUrA3X5Q0O9GXXLcfDns6z
+    

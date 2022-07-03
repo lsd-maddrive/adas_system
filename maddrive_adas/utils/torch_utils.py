@@ -26,6 +26,17 @@ except ImportError:
     thop = None
 
 
+def array_2_tensor(arr):
+    return torch.from_numpy(arr)
+
+
+def image_2_tensor(img):
+    '''
+    Convert HWC RGB image to torch tensor
+    '''
+    return torch.from_numpy(img).float().div(255.0).permute(2, 0, 1)
+
+
 @contextmanager
 def torch_distributed_zero_first(local_rank: int):
     """

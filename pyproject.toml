@@ -17,7 +17,7 @@ packages = [
 
 [tool.poetry.scripts]
 mdda-rtsd-download = "maddrive_adas.cli.rtsd_download:main"
-mdda-rtsd-generate-voc = "maddrive_adas.cli.rtsd_generate_voc:main"
+mdda-rtsd-update-dataset = "maddrive_adas.cli.rtsd_convert_dataset:main"
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.11"
@@ -33,6 +33,8 @@ albumentations = "^1.1.0"
 python-benedict = "^0.25.1"
 click = "^8.1.3"
 lxml = "^4.9.1"
+nptyping = "^2.2.0"
+addict = "^2.4.0"
 
 [tool.poetry.dev-dependencies]
 nbdime = "^3.1.1"
@@ -51,6 +53,13 @@ black = "^22.3.0"
 pyproject-flake8 = "^0.0.1-alpha.3"
 autopep8 = "^1.6.0"
 jupyterlab = "^3.4.3"
+catalyst = "^22.4"
+clearml = "^1.6.1"
+omegaconf = "^2.2.2"
+hydra-core = "^1.2.0"
+tabulate = "^0.8.10"
+thop = "^0.1.0"
+loguru = "^0.6.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
