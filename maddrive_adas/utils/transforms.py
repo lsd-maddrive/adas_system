@@ -25,29 +25,6 @@ def get_minimal_and_augment_transforms(img_size, interpolation=cv2.INTER_LINEAR)
 
     augment_transform = A.Compose(
         [
-            A.Blur(blur_limit=2),
-            A.CLAHE(p=0.2),
-            A.Perspective(scale=(0.01, 0.1), p=0.5),
-            A.ShiftScaleRotate(shift_limit=0.05,
-                               scale_limit=0.05,
-                               interpolation=cv2.INTER_LANCZOS4,
-                               border_mode=cv2.BORDER_CONSTANT,
-                               value=(0, 0, 0),
-                               rotate_limit=6, p=0.5),
-            A.RandomGamma(
-                gamma_limit=(80, 120),
-                p=1
-            ),
-            A.ImageCompression(quality_lower=80, p=0.5),
-            A.RandomBrightnessContrast(brightness_limit=0.2,
-                                       contrast_limit=0.3,
-                                       brightness_by_max=False,
-                                       p=0.5),
-            A.CoarseDropout(max_height=3,
-                            max_width=3,
-                            min_holes=1,
-                            max_holes=3,
-                            p=0.5),
             LongestMaxSize(img_size, interpolation=interpolation),
             PadIfNeeded(
                 img_size,
@@ -55,6 +32,28 @@ def get_minimal_and_augment_transforms(img_size, interpolation=cv2.INTER_LINEAR)
                 border_mode=cv2.BORDER_CONSTANT,
                 value=0
             ),
+            A.Blur(blur_limit=3),
+            A.CLAHE(p=0.5),
+            A.Perspective(scale=(0.01, 0.1), p=0.5),
+            A.ShiftScaleRotate(shift_limit=0.05,
+                               scale_limit=0.05,
+                               interpolation=cv2.INTER_LANCZOS4,
+                               border_mode=cv2.BORDER_CONSTANT,
+                               value=(0, 0, 0),
+                               rotate_limit=6, p=0.5),
+            A.ImageCompression(
+                quality_lower=40, quality_upper=100, p=1),
+            A.GaussNoise(var_limit=90, p=0.5),
+            A.RandomBrightnessContrast(brightness_limit=(-0.6, 0.3),
+                                       contrast_limit=0.6,
+                                       brightness_by_max=False,
+                                       p=0.8),
+            A.CoarseDropout(max_height=3,
+                            max_width=3,
+                            min_holes=1,
+                            max_holes=10,
+                            p=0.5),
+
             ToTensorV2(),
         ]
     )

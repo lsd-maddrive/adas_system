@@ -5,7 +5,7 @@ _encoder_url: str = \
 _detector_archive_url: str = \
     'https://mega.nz/file/QVVgQD7J#GtmX9qdMuzPmL4nLWJsK0pSdzprCWGf-bTwSMmKmOqc'
 _subclassifier_for_3_24_3_25_url: str = \
-    'https://mega.nz/file/dYMkBbwZ#qpnOYY-8ZNN03ZGY7SD8CGlePIVoCwrtV1rDi2U8Dxk'
+    'https://mega.nz/file/IdkAFBoB#o4pyZ1H1YNCZxW7_GwiKauV8bLqE1DXaZanYPwTQJwM'
 
 _encoder_output_file_path: str = 'encoder_archive'
 _detector_output_file_path: str = 'detector_archive'
