@@ -108,15 +108,14 @@ def put_coarse_dropouts(img: np.ndarray, rectangle_coords: List[int], color: Lis
     sub_img = img[rectangle_coords[1]:rectangle_coords[3],
                   rectangle_coords[0]:rectangle_coords[2], :]
     h, w, d = sub_img.shape
-    # print(h, w, d)
-    aug_compose = Compose(
+    aug_compose = Compose([
         CoarseDropout(
             max_height=h // 5,
             max_width=w // 5,
             min_holes=1,
             max_holes=10,
             fill_value=color,
-            p=p),
+            p=p), ]
     )
     coarsed_sub_img = aug_compose(image=sub_img)['image']
     img[rectangle_coords[1]:rectangle_coords[3], rectangle_coords[0]
