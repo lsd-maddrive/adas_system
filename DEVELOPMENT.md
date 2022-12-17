@@ -23,7 +23,7 @@
       sudo apt-get install build-essential
       ```
 
-- Устанавливаем `python 3.10`
+- Устанавливаем `python 3.8`
   - Windows
 
       Устанавливаем через [официальный установщик](https://www.python.org/downloads/)
@@ -73,7 +73,7 @@
 * *На Windows*
 
 ```bash
-conda create -n adas python=3.7ы
+conda create -n adas python=3.8
 pip install -r requirements.txt
 conda install -c pytorch faiss-cpu
 ```
@@ -81,7 +81,7 @@ conda install -c pytorch faiss-cpu
 * *На Linux*
 
 ```bash
-conda create -n adas python=3.7
+conda create -n adas python=3.8
 pip install -r requirements.txt
 conda install -c pytorch faiss-gpu
 ```
