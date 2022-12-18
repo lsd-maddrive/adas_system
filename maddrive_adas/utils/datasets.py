@@ -1425,7 +1425,6 @@ class YoloDataset(torch.utils.data.Dataset):
         img_size=640,
         batch_size=16,
         augment=False,
-        hyp=None,
     ):
 
         self.img_size = img_size
@@ -1436,7 +1435,7 @@ class YoloDataset(torch.utils.data.Dataset):
         self.albumentations = Albumentations() if augment else None
 
     def loadImage(self, instance):
-        path, (w0, h0) = instance["filepath"], instance["size"]
+        path, (w0, h0) = str(instance["filepath"]), instance["size"]
         im = cv2.imread(path)
         assert im is not None, f"Image Not Found {path}"
 
