@@ -1,3 +1,4 @@
+from maddrive_adas.utils.general import LOGGER
 from typing import Tuple
 
 import pathlib
@@ -14,8 +15,8 @@ from torch.optim import lr_scheduler
 from maddrive_adas.models.yolo import Model
 from maddrive_adas.utils.winter_augment import WinterizedYoloDataset
 from maddrive_adas.utils.datasets import YoloDataset
-from maddrive_adas.utils.general import one_cycle
-from maddrive_adas.utils.general import set_logging
+from maddrive_adas.val import valid_epoch
+from maddrive_adas.utils.general import one_cycle, set_logging
 from maddrive_adas.utils.torch_utils import smart_optimizer
 
 PROJECT_ROOT = pathlib.Path('./').resolve()
@@ -23,9 +24,8 @@ DATA_DIR = PROJECT_ROOT / 'SignDetectorAndClassifier' / 'data'
 DATASET_DIR = DATA_DIR / 'YOLO_DATASET'
 CHECKPOINT_PATH = DATA_DIR / 'YOLO_CP.pt'
 HYP_YAML_FILE_PATH = DATA_DIR / "hyp.scratch.yaml"
-MODEL_CONFIG_PATH = DATA_DIR / 'yolov5l_custom_anchors.yaml'
+MODEL_CONFIG_PATH = DATA_DIR / 'yolov5s_custom_anchors.yaml'
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-LOGGER = set_logging(__name__, verbose=True)
 
 IMGSZ = 640
 TOTAL_EPOCHS = 300
@@ -62,6 +62,7 @@ def train(
 
     global CURRENT_EPOCH
     nc = 1
+    accumulate_not_initialized = True
 
     cuda = DEVICE.type == 'cuda'
     nb = len(train_loader)
@@ -98,6 +99,8 @@ def train(
 
     LOGGER.info('Starting model training')
     for epoch in range(start_epoch, epochs):
+        CURRENT_EPOCH = epoch
+
         model.train()
 
         mloss = torch.zeros(3, device=DEVICE)
@@ -116,7 +119,7 @@ def train(
             # writer.add_images('images batch', imgs, epoch)
 
             # Warmup
-            if ni <= nw:
+            if ni <= nw or accumulate_not_initialized:
                 xi = [0, nw]  # x interp
                 # compute_loss.gr = np.interp(ni, xi, [0.0, 1.0])  # iou loss ratio (obj_loss = 1.0 or iou)
                 accumulate = max(1, np.interp(ni, xi, [1, nbs / batch_size]).round())
@@ -126,6 +129,7 @@ def train(
                                         2 else 0.0, x['initial_lr'] * lf(epoch)])
                     if 'momentum' in x:
                         x['momentum'] = np.interp(ni, xi, [hyp['warmup_momentum'], hyp['momentum']])
+                accumulate_not_initialized = False
 
             # Forward
             with amp.autocast(enabled=cuda):
@@ -160,19 +164,24 @@ def train(
         writer.add_scalar('loss box', mloss[0], epoch)
         writer.add_scalar('loss_obj', mloss[1], epoch)
 
-        from maddrive_adas.val import valid_epoch
-        # TODO: fix args
-        if True:
-            validate_result = valid_epoch(
-                model,
-                valid_loader,
-                conf_thres=0.01,
-                iou_thres=0.01,
-                max_det=10,
-                half=half
-            )
-            model.float()
-            print(validate_result)
+        mp, mr, map50, map_, maps = valid_epoch(
+            model,
+            valid_loader,
+            conf_thres=0.3,
+            iou_thres=0.4,
+            max_det=10,
+            half=half
+        )
+        writer.add_scalars(
+            'Metrics',
+            {
+                'mp': mp,
+                'mr': mr,
+                'map50': map50,
+                'map': map_,
+                'precision': maps[0]
+            }, epoch)
+        model.float()
 
         # writer.add_hparams(
         #     {
@@ -197,14 +206,13 @@ def train(
 
         # Checkpoint.save_checkpoint(model_save_name, model, optimizer, scheduler, epoch)
         Checkpoint.save_checkpoint(CHECKPOINT_PATH, model, optimizer, scheduler, epoch)
-        CURRENT_EPOCH = epoch
 
 
 def load_dataset_csv() -> pd.DataFrame:
     import ast
 
     def read_yolo_dataset_csv(csv_path: pathlib.Path, filepath_prefix: str):
-        data = pd.read_csv(csv_path) if not is_debug() else pd.read_csv(csv_path).iloc[:24]
+        data = pd.read_csv(csv_path) if not is_debug() else pd.read_csv(csv_path).iloc[:200]
         data['filepath'] = data['filepath'].apply(lambda x: pathlib.Path(filepath_prefix) / x)
         data['size'] = data['size'].apply(lambda x: ast.literal_eval(x))
         data['coords'] = data['coords'].apply(lambda x: ast.literal_eval(x))
@@ -227,15 +235,21 @@ def get_winterized_dataloader(
     num_workers=0,
     augment=False,
 ):
-    # dataset = WinterizedYoloDataset(df, set_label=set_label, hyp_arg=hyp,
-    #                                 augment=True, hide_corner_chance=0.)
-    dataset = YoloDataset(
+    dataset = WinterizedYoloDataset(
         df,
         set_label=set_label,
         hyp_arg=hyp,
+        img_size=imgsz,
         augment=augment,
-        batch_size=batch_size,
-        img_size=imgsz)
+        hide_corner_chance=1.,
+    )
+    # dataset = YoloDataset(
+    #     df,
+    #     set_label=set_label,
+    #     hyp_arg=hyp,
+    #     augment=augment,
+    #     batch_size=batch_size,
+    #     img_size=imgsz)
 
     return DataLoader(
         dataset,
@@ -278,12 +292,18 @@ class Checkpoint:
             return model, optimizer, scheduler, checkpoint[Checkpoint.EPOCH]
         except (FileNotFoundError, KeyError, RuntimeError) as e:
             msg = f'Unable to load model checkpoint: {e}'
-            LOGGER.warn(msg)
+            LOGGER.warning(msg)
             model.to(map_location)
             return model, optimizer, scheduler, 0
 
     @staticmethod
-    def save_checkpoint(path, model, optimizer, scheduler, epoch):
+    def save_checkpoint(
+        path,
+        model: Model,
+        optimizer: Optimizer,
+        scheduler: lr_scheduler.CyclicLR,
+        epoch: int
+    ):
         torch.save({
             Checkpoint.EPOCH: epoch,
             Checkpoint.MODEL: model.state_dict(),
@@ -296,9 +316,9 @@ class Checkpoint:
 if __name__ == '__main__':
     full_dataset = load_dataset_csv()
     train_loader = get_winterized_dataloader(
-        full_dataset, set_label='train', hyp=HYP, batch_size=12, imgsz=IMGSZ)
+        full_dataset, set_label='train', hyp=HYP, batch_size=32, imgsz=IMGSZ)
     valid_loader = get_winterized_dataloader(
-        full_dataset, set_label='valid', hyp=HYP, batch_size=10, imgsz=IMGSZ)
+        full_dataset, set_label='valid', hyp=HYP, batch_size=64, imgsz=IMGSZ)
 
     model, optimizer, scheduler, epoch = Checkpoint.load_checkpoint(
         CHECKPOINT_PATH,
@@ -310,11 +330,11 @@ if __name__ == '__main__':
     try:
         train(
             model, train_loader,
-            train_loader, start_epoch=epoch + 1,
+            valid_loader, start_epoch=epoch,
             epochs=300, hyp=HYP,
             optimizer=optimizer,
             scheduler=scheduler,
-            half=True)
+            half=False)
     except KeyboardInterrupt:
-        LOGGER.warn('KeyboardInterrupt occur. Saving model.')
+        LOGGER.warning('KeyboardInterrupt occur. Saving model.')
         Checkpoint.save_checkpoint(CHECKPOINT_PATH, model, optimizer, scheduler, CURRENT_EPOCH)

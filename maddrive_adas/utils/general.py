@@ -76,7 +76,8 @@ def set_logging(name=None, verbose=True):
 
 
 LOGGER = set_logging(
-    __name__
+    __name__,
+    verbose=False
 )  # define globally (used in train.py, val.py, detect.py, etc.)
 
 

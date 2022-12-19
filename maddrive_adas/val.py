@@ -64,12 +64,11 @@ def valid_epoch(
     names = {k: v for k, v in enumerate(
         model.names if hasattr(model, 'names') else model.module.names)}
 
-    s = ('%20s' + '%11s' * 6) % ('Class', 'Images', 'Labels', 'P', 'R', 'mAP@.5', 'mAP@.5:.95')
+    # s = ('%20s' + '%11s' * 6) % ('Class', 'Images', 'Labels', 'P', 'R', 'mAP@.5', 'mAP@.5:.95')
     dt, p, r, f1, mp, mr, map50, map = [0.0, 0.0, 0.0], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
-    loss = torch.zeros(3, device=device)
     jdict, stats, ap, ap_class = [], [], [], []
-    pbar = tqdm(dataloader, total=len(dataloader), desc=s,
-                bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')  # progress bar
+    pbar = tqdm(dataloader, total=len(dataloader),  # desc=s,
+                bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}', leave=False)  # progress bar
     for batch_i, (im, targets, paths, shapes) in enumerate(pbar):
 
         im = im.to(device)  # , non_blocking=True)
@@ -128,13 +127,9 @@ def valid_epoch(
         tp, fp, p, r, f1, ap, ap_class = ap_per_class(*stats, plot=False, save_dir='.', names=names)
         ap50, ap = ap[:, 0], ap.mean(1)  # AP@0.5, AP@0.5:0.95
         mp, mr, map50, map = p.mean(), r.mean(), ap50.mean(), ap.mean()
-        nt = np.bincount(stats[3].astype(np.int64), minlength=nc)  # number of targets per class
-    else:
-        nt = torch.zeros(1)
 
     maps = np.zeros(nc) + map
     for i, c in enumerate(ap_class):
         maps[c] = ap[i]
 
-    pf = '%20s' + '%11i' * 2 + '%11.3g' * 4  # print format
-    return (mp, mr, map50, map, *(loss.cpu() / len(dataloader)).tolist()), maps
+    return mp, mr, map50, map, maps
