@@ -1,5 +1,4 @@
-from maddrive_adas.utils.general import LOGGER
-from typing import Tuple
+from typing import Tuple, List
 
 import pathlib
 from datetime import datetime
@@ -10,13 +9,16 @@ import pandas as pd
 
 from torch.utils.data import DataLoader
 from torch.optim.optimizer import Optimizer
-from maddrive_adas.utils import is_debug
 from torch.optim import lr_scheduler
+from torch.utils.tensorboard import SummaryWriter
+
+from maddrive_adas.utils.general import LOGGER
+from maddrive_adas.utils import is_debug
 from maddrive_adas.models.yolo import Model
 from maddrive_adas.utils.winter_augment import WinterizedYoloDataset
 from maddrive_adas.utils.datasets import YoloDataset
 from maddrive_adas.val import valid_epoch
-from maddrive_adas.utils.general import one_cycle, set_logging
+from maddrive_adas.utils.general import one_cycle
 from maddrive_adas.utils.torch_utils import smart_optimizer
 
 PROJECT_ROOT = pathlib.Path('./').resolve()
@@ -30,6 +32,8 @@ DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 IMGSZ = 640
 TOTAL_EPOCHS = 300
 CURRENT_EPOCH = -1
+CONF_THRES = 0.3
+IOU_THRES = 0.4
 
 
 def read_hyp(hyps_file):
@@ -41,14 +45,38 @@ def read_hyp(hyps_file):
 HYP = read_hyp(hyps_file=HYP_YAML_FILE_PATH)
 
 
+def get_batch_images_with_predicted(batch: torch.Tensor, predicted_boxes: torch.Tensor, actual_boxes: List[int]):
+    images = batch.numpy()
+    pred = predicted_boxes.numpy()
+    # resize/scale
+    actual_boxes = actual_boxes
+
+    actual_color = (255, 255, 0)
+
+    predicted_color = (255, 0, 255)
+
+
+def write_hparams(writer: SummaryWriter, lr, mloss, epoch):
+    writer.add_scalar('lr weight with decay', lr[0], epoch)
+    writer.add_scalar('lr weights', lr[1], epoch)
+    writer.add_scalar('lr biases', lr[2], epoch)
+    writer.add_scalar('loss box', mloss[0], epoch)
+    writer.add_scalar('loss_obj', mloss[1], epoch)
+
+
+def write_metrics(writer: SummaryWriter, metrics, epoch):
+    writer.add_scalars(
+        'Metrics', metrics, global_step=epoch)
+
+
 def train(
     model: Model,
     train_loader: DataLoader,
     valid_loader: DataLoader,
     epochs,
     hyp,
-    optimizer: Optimizer = None,
-    scheduler=None,
+    optimizer: Optimizer,
+    scheduler: lr_scheduler.CyclicLR,
     start_epoch: int = 0,
     half=False,
 ):
@@ -56,7 +84,6 @@ def train(
     from maddrive_adas.utils.torch_utils import ModelEMA, de_parallel
 
     from tqdm import tqdm
-    from torch.utils.tensorboard import SummaryWriter
     writer = SummaryWriter()
     from torch.cuda import amp
 
@@ -70,18 +97,6 @@ def train(
     nbs = 64  # nominal batch size
     batch_size = train_loader.batch_size
     last_opt_step = -1
-
-    if not optimizer:
-        LOGGER.info('Optimizer not passed. Using default Yolo\'s SDG')
-        optimizer: Optimizer = smart_optimizer(
-            model, 'SDG', hyp['lr0'], hyp['momentum'], hyp['weight_decay'])
-
-    if not scheduler:
-        LOGGER.info('Scheduler not passed. Using default CyclicLR')
-        lf = one_cycle(1, hyp['lrf'], epochs)  # cosine 1->hyp['lrf']
-        scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lf)
-    else:
-        lf = scheduler.lr_lambdas[0]
 
     ema = ModelEMA(model)
 
@@ -102,23 +117,20 @@ def train(
         CURRENT_EPOCH = epoch
 
         model.train()
-
         mloss = torch.zeros(3, device=DEVICE)
         LOGGER.info(('\n' + '%10s' * 7) % ('Epoch', 'gpu_mem',
                     'box', 'obj', 'cls', 'labels', 'img_size'))
         pbar = tqdm(enumerate(train_loader), total=nb,
-                    bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')  # progress bar
+                    bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}', leave=False)  # progress bar
 
         optimizer.zero_grad()
-        for i, (imgs, targets, paths, original_boxes) in pbar:
+        for i, (imgs, targets, paths, original_images_shapes) in pbar:
             ni = i + nb * epoch  # number integrated batches (since train start)
             imgs = imgs.to(DEVICE, non_blocking=True).float() / \
                 255  # uint8 to float32, 0-255 to 0.0-1.0
             imgs.half() if half else None
-            # writer.add_image_with_boxes('sample img', imgs[0], targets[0], epoch)
-            # writer.add_images('images batch', imgs, epoch)
 
-            # Warmup
+            # Warmup # TODO: remove accumulate_not_initialized
             if ni <= nw or accumulate_not_initialized:
                 xi = [0, nw]  # x interp
                 # compute_loss.gr = np.interp(ni, xi, [0.0, 1.0])  # iou loss ratio (obj_loss = 1.0 or iou)
@@ -126,7 +138,7 @@ def train(
                 for j, x in enumerate(optimizer.param_groups):
                     # bias lr falls from 0.1 to lr0, all other lrs rise from 0.0 to lr0
                     x['lr'] = np.interp(ni, xi, [hyp['warmup_bias_lr'] if j ==
-                                        2 else 0.0, x['initial_lr'] * lf(epoch)])
+                                        2 else 0.0, x['initial_lr'] * scheduler.lr_lambdas[0](epoch)])
                     if 'momentum' in x:
                         x['momentum'] = np.interp(ni, xi, [hyp['warmup_momentum'], hyp['momentum']])
                 accumulate_not_initialized = False
@@ -147,8 +159,7 @@ def train(
                 scaler.step(optimizer)  # optimizer.step
                 scaler.update()
                 optimizer.zero_grad()
-                if ema:
-                    ema.update(model)
+                ema.update(model)
                 last_opt_step = ni
 
             mloss = (mloss * i + loss_items) / (i + 1)  # update mean losses
@@ -158,51 +169,31 @@ def train(
 
         # Scheduler
         lr = [x['lr'] for x in optimizer.param_groups]  # for loggers
-        writer.add_scalar('lr0', lr[0], epoch)
-        writer.add_scalar('lr1', lr[1], epoch)
-        writer.add_scalar('lr2', lr[2], epoch)
-        writer.add_scalar('loss box', mloss[0], epoch)
-        writer.add_scalar('loss_obj', mloss[1], epoch)
 
         mp, mr, map50, map_, maps = valid_epoch(
             model,
             valid_loader,
-            conf_thres=0.3,
-            iou_thres=0.4,
+            conf_thres=CONF_THRES,
+            iou_thres=IOU_THRES,
             max_det=10,
-            half=half
+            half=half,
+            writer=writer,
+            epoch=epoch
         )
-        writer.add_scalars(
-            'Metrics',
-            {
-                'mp': mp,
-                'mr': mr,
-                'map50': map50,
-                'map': map_,
-                'precision': maps[0]
-            }, epoch)
+
+        write_hparams(writer, lr, mloss, epoch=epoch)
+        write_metrics(writer, metrics={
+            'mp': mp,
+            'mr': mr,
+            'map50': map50,
+            'map': map_,
+            'precision': maps[0]
+        }, epoch=epoch)
+
         model.float()
-
-        # writer.add_hparams(
-        #     {
-        #         'epoch': epoch,
-        #     },
-        #     {
-        #         'map': .0,  # TODO: fix map
-        #         'lbox': mloss[0],
-        #         'lobj': mloss[1],
-        #         'lr_1': lr[0],
-        #         'lr_2': lr[1],
-        #         'lr_3': lr[2]
-        #     },)
-
         writer.flush()
 
         scheduler.step()
-
-        now = datetime.now()
-        model_per_iter_name = f'YoloV5_{now.strftime("%d.%m_%H.%M")}_lbox{mloss[0]}_lobj{mloss[1]}.pt'
-        model_save_name = DATA_DIR / model_per_iter_name
 
         # Checkpoint.save_checkpoint(model_save_name, model, optimizer, scheduler, epoch)
         Checkpoint.save_checkpoint(CHECKPOINT_PATH, model, optimizer, scheduler, epoch)
@@ -212,7 +203,7 @@ def load_dataset_csv() -> pd.DataFrame:
     import ast
 
     def read_yolo_dataset_csv(csv_path: pathlib.Path, filepath_prefix: str):
-        data = pd.read_csv(csv_path) if not is_debug() else pd.read_csv(csv_path).iloc[:200]
+        data = pd.read_csv(csv_path) if not is_debug() else pd.read_csv(csv_path).iloc[:20]
         data['filepath'] = data['filepath'].apply(lambda x: pathlib.Path(filepath_prefix) / x)
         data['size'] = data['size'].apply(lambda x: ast.literal_eval(x))
         data['coords'] = data['coords'].apply(lambda x: ast.literal_eval(x))

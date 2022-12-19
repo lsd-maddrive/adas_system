@@ -228,22 +228,8 @@ class WinterizedYoloDataset(torch.utils.data.Dataset):
                 vgain=self.hyp["hsv_v"],
             )
 
-            # Remove random flip
-            # # Flip up-down
-            # if random.random() < self.hyp["flipud"]:
-            #     img = np.flipud(img)
-            #     if nl:
-            #         labels[:, 2] = 1 - labels[:, 2]
-
-            # # Flip left-right
-            # if random.random() < self.hyp["fliplr"]:
-            #     img = np.fliplr(img)
-            #     if nl:
-            #         labels[:, 1] = 1 - labels[:, 1]
-
         nl = len(labels)
 
-        # why out size (?, 6)??
         labels_out = torch.zeros((nl, 6))
         if nl:
             labels_out[:, 1:] = torch.from_numpy(labels)

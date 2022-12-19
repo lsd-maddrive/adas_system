@@ -1,7 +1,12 @@
+from typing import List
+
+import cv2
 import torch
 import numpy as np
+
 from tqdm import tqdm
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 
 from maddrive_adas.models.yolo import Model
 from maddrive_adas.utils.metrics import ap_per_class
@@ -37,15 +42,57 @@ def process_batch(detections, labels, iouv):
     return correct
 
 
+def write_valid_images(
+    writer: SummaryWriter,
+    images: np.ndarray,
+    actual: List[torch.Tensor],
+    prediction: List[torch.Tensor],
+    epoch,
+    actual_color=(255, 255, 0),
+    pred_color=(255, 0, 255),
+):
+    resulting_images = []
+    for im, actual_boxes, pred_boxes in zip(images, actual, prediction):
+        im = (im * 255).astype(np.uint8).copy()
+        for box_coords in actual_boxes:
+            im = cv2.rectangle(
+                im,
+                (box_coords[0] - box_coords[2] // 2, box_coords[1] - box_coords[3] // 2),
+                (box_coords[0] + box_coords[2] // 2, box_coords[1] + box_coords[3] // 2),
+                color=actual_color,
+                thickness=2
+            )
+
+        for box_coords in pred_boxes:
+            box_coords = box_coords.cpu().numpy().astype('int')
+            im = cv2.rectangle(
+                im,
+                (box_coords[0], box_coords[1]),
+                (box_coords[2], box_coords[3]),
+                color=pred_color,
+                thickness=2
+            )
+        resulting_images.append(im)
+
+    writer.add_images(
+        'Validation',
+        img_tensor=np.array(resulting_images),
+        global_step=epoch,
+        dataformats='NHWC'
+    )
+
+
 @torch.no_grad()
 def valid_epoch(
         model: Model,
         dataloader: DataLoader,
+        epoch,
         iou_thres=0.5,
         conf_thres=0.01,
         max_det=50,
-        half=True):
-
+        half=True,
+        writer: SummaryWriter = None,
+):
     model.eval()
 
     nc = 1
@@ -72,7 +119,7 @@ def valid_epoch(
     for batch_i, (im, targets, paths, shapes) in enumerate(pbar):
 
         im = im.to(device)  # , non_blocking=True)
-        targets = targets.to(device)
+        targets: torch.Tensor = targets.to(device)
 
         im = im.half() if half else im.float()
         im /= 255
@@ -85,8 +132,25 @@ def valid_epoch(
         targets[:, 2:] *= torch.Tensor([width, height, width, height]).to(device)  # to pixels
         lb = []  # for autolabelling
         out = non_max_suppression(out, conf_thres, iou_thres, labels=lb,
-                                  multi_label=True, agnostic=single_cls, max_det=max_det)
+                                  multi_label=False, agnostic=single_cls, max_det=max_det)
 
+        # fix targets
+        prev_idx = -1
+        targets_per_image: List[List] = []
+        for y in targets.cpu().numpy():
+            current_idx = int(y[0])
+            if current_idx != prev_idx:
+                prev_idx = current_idx
+                targets_per_image.append([])
+            targets_per_image[-1].append(y.astype('int')[2:])
+
+        write_valid_images(
+            writer=writer,
+            images=im.cpu().numpy().transpose(0, 2, 3, 1),
+            actual=targets_per_image,
+            prediction=out,
+            epoch=epoch
+        )
         # Metrics
         for si, pred in enumerate(out):
             labels = targets[targets[:, 0] == si, 1:]
