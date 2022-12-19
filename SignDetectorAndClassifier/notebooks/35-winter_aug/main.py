@@ -24,9 +24,9 @@ from maddrive_adas.utils.torch_utils import smart_optimizer
 PROJECT_ROOT = pathlib.Path('./').resolve()
 DATA_DIR = PROJECT_ROOT / 'SignDetectorAndClassifier' / 'data'
 DATASET_DIR = DATA_DIR / 'YOLO_DATASET'
-CHECKPOINT_PATH = DATA_DIR / 'YOLO_CP.pt'
+CHECKPOINT_PATH = DATA_DIR / 'YOLO_CP_m.pt'
 HYP_YAML_FILE_PATH = DATA_DIR / "hyp.scratch.yaml"
-MODEL_CONFIG_PATH = DATA_DIR / 'yolov5s_custom_anchors.yaml'
+MODEL_CONFIG_PATH = DATA_DIR / 'yolov5m_custom_anchors.yaml'
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 IMGSZ = 640
@@ -225,6 +225,7 @@ def get_winterized_dataloader(
     batch_size=1,
     num_workers=0,
     augment=False,
+    shuffle=False,
 ):
     dataset = WinterizedYoloDataset(
         df,
@@ -245,7 +246,7 @@ def get_winterized_dataloader(
     return DataLoader(
         dataset,
         batch_size=batch_size,
-        shuffle=True,
+        shuffle=shuffle,
         num_workers=num_workers,  # doesnt work in Windows
         sampler=None,
         pin_memory=True,
@@ -307,9 +308,9 @@ class Checkpoint:
 if __name__ == '__main__':
     full_dataset = load_dataset_csv()
     train_loader = get_winterized_dataloader(
-        full_dataset, set_label='train', hyp=HYP, batch_size=32, imgsz=IMGSZ)
+        full_dataset, set_label='train', hyp=HYP, batch_size=32, imgsz=IMGSZ, shuffle=True)
     valid_loader = get_winterized_dataloader(
-        full_dataset, set_label='valid', hyp=HYP, batch_size=64, imgsz=IMGSZ)
+        full_dataset, set_label='valid', hyp=HYP, batch_size=64, imgsz=IMGSZ, shuffle=False)
 
     model, optimizer, scheduler, epoch = Checkpoint.load_checkpoint(
         CHECKPOINT_PATH,
