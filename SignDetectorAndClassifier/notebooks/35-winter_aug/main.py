@@ -121,7 +121,7 @@ def train(
         LOGGER.info(('\n' + '%10s' * 7) % ('Epoch', 'gpu_mem',
                     'box', 'obj', 'cls', 'labels', 'img_size'))
         pbar = tqdm(enumerate(train_loader), total=nb,
-                    bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}', leave=False)  # progress bar
+                    bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}', leave=True)  # progress bar
 
         optimizer.zero_grad()
         for i, (imgs, targets, paths, original_images_shapes) in pbar:
@@ -203,7 +203,7 @@ def load_dataset_csv() -> pd.DataFrame:
     import ast
 
     def read_yolo_dataset_csv(csv_path: pathlib.Path, filepath_prefix: str):
-        data = pd.read_csv(csv_path) if not is_debug() else pd.read_csv(csv_path).iloc[:20]
+        data = pd.read_csv(csv_path).iloc[:800] if is_debug() else pd.read_csv(csv_path)
         data['filepath'] = data['filepath'].apply(lambda x: pathlib.Path(filepath_prefix) / x)
         data['size'] = data['size'].apply(lambda x: ast.literal_eval(x))
         data['coords'] = data['coords'].apply(lambda x: ast.literal_eval(x))
@@ -308,9 +308,9 @@ class Checkpoint:
 if __name__ == '__main__':
     full_dataset = load_dataset_csv()
     train_loader = get_winterized_dataloader(
-        full_dataset, set_label='train', hyp=HYP, batch_size=32, imgsz=IMGSZ, shuffle=True)
+        full_dataset, set_label='train', hyp=HYP, batch_size=16, imgsz=IMGSZ, shuffle=True)
     valid_loader = get_winterized_dataloader(
-        full_dataset, set_label='valid', hyp=HYP, batch_size=64, imgsz=IMGSZ, shuffle=False)
+        full_dataset, set_label='valid', hyp=HYP, batch_size=32, imgsz=IMGSZ, shuffle=False)
 
     model, optimizer, scheduler, epoch = Checkpoint.load_checkpoint(
         CHECKPOINT_PATH,
