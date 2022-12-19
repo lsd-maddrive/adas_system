@@ -50,9 +50,12 @@ def write_valid_images(
     epoch,
     actual_color=(255, 255, 0),
     pred_color=(255, 0, 255),
+    writer_limit=10
 ):
     resulting_images = []
-    for im, actual_boxes, pred_boxes in zip(images, actual, prediction):
+    for idx, (im, actual_boxes, pred_boxes) in enumerate(zip(images, actual, prediction), 1):
+        if idx >= writer_limit:
+            break
         im = (im * 255).astype(np.uint8).copy()
         for box_coords in actual_boxes:
             im = cv2.rectangle(
@@ -92,6 +95,7 @@ def valid_epoch(
         max_det=50,
         half=True,
         writer: SummaryWriter = None,
+        writer_limit=0
 ):
     model.eval()
 
@@ -144,13 +148,15 @@ def valid_epoch(
                 targets_per_image.append([])
             targets_per_image[-1].append(y.astype('int')[2:])
 
-        write_valid_images(
-            writer=writer,
-            images=im.cpu().numpy().transpose(0, 2, 3, 1),
-            actual=targets_per_image,
-            prediction=out,
-            epoch=epoch
-        )
+        if writer is not None and epoch is not None and writer_limit > 0:
+            write_valid_images(
+                writer=writer,
+                images=im.cpu().numpy().transpose(0, 2, 3, 1),
+                actual=targets_per_image,
+                prediction=out,
+                epoch=epoch,
+                writer_limit=writer_limit
+            )
         # Metrics
         for si, pred in enumerate(out):
             labels = targets[targets[:, 0] == si, 1:]

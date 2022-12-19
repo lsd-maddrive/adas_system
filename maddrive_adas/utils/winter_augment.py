@@ -18,6 +18,7 @@ from maddrive_adas.utils.general import (
     xyxy2xywhn,
 )
 from maddrive_adas.utils.transforms import ConvertCenterXYWH2CV2Rectangle, UnmakeRel
+from maddrive_adas.utils.general import LOGGER
 
 import random
 
@@ -120,6 +121,7 @@ def put_coarse_dropouts(img: np.ndarray, rectangle_coords: List[int], color: Lis
     coarsed_sub_img = aug_compose(image=sub_img)['image']
     img[rectangle_coords[1]:rectangle_coords[3], rectangle_coords[0]
         :rectangle_coords[2], :] = coarsed_sub_img
+
     return img
 
 
@@ -158,8 +160,11 @@ class WinterizedYoloDataset(torch.utils.data.Dataset):
         img = cv2.imread(str(path))
         assert img is not None, f"Image Not Found {path}"
         img = hide_corner_aug(img, instance['coords'], p=self._hide_corner_chance, k_limit=1)
-        img = put_shieeet_on_img_like_winter(img, instance['coords'])
-
+        try:
+            img = put_shieeet_on_img_like_winter(img, instance['coords'])
+        except ValueError as e:
+            msg = f'Cannot winterize {path}. Skipping'
+            LOGGER.warning(msg)
         r = self.img_size / max(h0, w0)  # ratio
 
         if r != 1:  # if sizes are not equal

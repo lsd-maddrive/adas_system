@@ -178,7 +178,8 @@ def train(
             max_det=10,
             half=half,
             writer=writer,
-            epoch=epoch
+            epoch=epoch,
+            writer_limit=10
         )
 
         write_hparams(writer, lr, mloss, epoch=epoch)
@@ -203,7 +204,7 @@ def load_dataset_csv() -> pd.DataFrame:
     import ast
 
     def read_yolo_dataset_csv(csv_path: pathlib.Path, filepath_prefix: str):
-        data = pd.read_csv(csv_path).iloc[:800] if is_debug() else pd.read_csv(csv_path)
+        data = pd.read_csv(csv_path).iloc[:3600] if is_debug() else pd.read_csv(csv_path)
         data['filepath'] = data['filepath'].apply(lambda x: pathlib.Path(filepath_prefix) / x)
         data['size'] = data['size'].apply(lambda x: ast.literal_eval(x))
         data['coords'] = data['coords'].apply(lambda x: ast.literal_eval(x))
