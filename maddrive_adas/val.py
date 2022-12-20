@@ -12,7 +12,7 @@ from maddrive_adas.models.yolo import Model
 from maddrive_adas.utils.metrics import ap_per_class
 from maddrive_adas.utils.general import (
     box_iou, non_max_suppression,
-    scale_coords, xywh2xyxy,
+    scale_coords, xywh2xyxy, LOGGER
 )
 
 
@@ -63,7 +63,7 @@ def write_valid_images(
                 (box_coords[0] - box_coords[2] // 2, box_coords[1] - box_coords[3] // 2),
                 (box_coords[0] + box_coords[2] // 2, box_coords[1] + box_coords[3] // 2),
                 color=actual_color,
-                thickness=2
+                thickness=3
             )
 
         for box_coords in pred_boxes:
@@ -138,17 +138,21 @@ def valid_epoch(
         out = non_max_suppression(out, conf_thres, iou_thres, labels=lb,
                                   multi_label=False, agnostic=single_cls, max_det=max_det)
 
-        # fix targets
-        prev_idx = -1
-        targets_per_image: List[List] = []
-        for y in targets.cpu().numpy():
-            current_idx = int(y[0])
-            if current_idx != prev_idx:
-                prev_idx = current_idx
-                targets_per_image.append([])
-            targets_per_image[-1].append(y.astype('int')[2:])
+        if writer is not None and epoch is not None and writer_limit > 0 and batch_i == 0:
+            if writer_limit > len(im):
+                msg = 'Cannot write more images than on batch to tensorboard. Writing one (first) batch'
+                LOGGER.warning(msg)
 
-        if writer is not None and epoch is not None and writer_limit > 0:
+            # fix targets
+            prev_idx = -1
+            targets_per_image: List[List] = []
+            for y in targets.cpu().numpy():
+                current_idx = int(y[0])
+                if current_idx != prev_idx:
+                    prev_idx = current_idx
+                    targets_per_image.append([])
+                targets_per_image[-1].append(y.astype('int')[2:])
+
             write_valid_images(
                 writer=writer,
                 images=im.cpu().numpy().transpose(0, 2, 3, 1),
@@ -157,6 +161,7 @@ def valid_epoch(
                 epoch=epoch,
                 writer_limit=writer_limit
             )
+
         # Metrics
         for si, pred in enumerate(out):
             labels = targets[targets[:, 0] == si, 1:]
