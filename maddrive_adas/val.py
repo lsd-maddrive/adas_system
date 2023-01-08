@@ -48,9 +48,9 @@ def write_valid_images(
     actual: List[torch.Tensor],
     prediction: List[torch.Tensor],
     epoch,
-    actual_color=(255, 255, 0),
-    pred_color=(255, 0, 255),
-    writer_limit=10
+    actual_color=(0, 255, 0),
+    pred_color=(255, 0, 0),
+    writer_limit=27
 ):
     resulting_images = []
     for idx, (im, actual_boxes, pred_boxes) in enumerate(zip(images, actual, prediction), 1):
