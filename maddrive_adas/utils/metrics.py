@@ -3,7 +3,6 @@
 Model validation metrics
 """
 
-from torch.utils.tensorboard import SummaryWriter
 import math
 import warnings
 from pathlib import Path
