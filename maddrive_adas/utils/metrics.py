@@ -403,9 +403,3 @@ def plot_mc_curve(
     plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
     fig.savefig(Path(save_dir), dpi=250)
     plt.close()
-
-
-class QueuedSummaryWriter(SummaryWriter):
-
-    def __init__(*args, **kwargs):
-        pass
