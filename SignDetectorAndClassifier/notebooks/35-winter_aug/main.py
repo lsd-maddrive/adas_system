@@ -309,9 +309,9 @@ class Checkpoint:
 if __name__ == '__main__':
     full_dataset = load_dataset_csv()
     train_loader = get_winterized_dataloader(
-        full_dataset, set_label='train', hyp=HYP, batch_size=16, imgsz=IMGSZ, shuffle=True)
+        full_dataset, set_label='train', hyp=HYP, batch_size=20, imgsz=IMGSZ, shuffle=True, augment=True)
     valid_loader = get_winterized_dataloader(
-        full_dataset, set_label='valid', hyp=HYP, batch_size=32, imgsz=IMGSZ, shuffle=False)
+        full_dataset, set_label='valid', hyp=HYP, batch_size=40, imgsz=IMGSZ, shuffle=False)
 
     model, optimizer, scheduler, epoch = Checkpoint.load_checkpoint(
         CHECKPOINT_PATH,
