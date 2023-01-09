@@ -24,8 +24,7 @@ PROJECT_ROOT = get_project_root()
 DATA_DIR = PROJECT_ROOT / 'SignDetectorAndClassifier' / 'data'
 DATASET_DIR = DATA_DIR / 'YOLO_DATASET'
 CHECKPOINT_PATH = DATA_DIR / 'YOLO_CP_m.pt'
-HYP_YAML_FILE_PATH = DATA_DIR / "hyp.scratch.yaml"
-MODEL_CONFIG_PATH = DATA_DIR / 'yolov5m_custom_anchors.yaml'
+
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 IMGSZ = 640
@@ -250,6 +249,9 @@ def _load_checkpoint(checkpoint_file_path):
 
 
 def _build_checkpoint(checkpoint_file_path):
+    HYP_YAML_FILE_PATH = DATA_DIR / "hyp.scratch.yaml"
+    MODEL_CONFIG_PATH = DATA_DIR / 'yolov5m_custom_anchors.yaml'
+
     hyps = load_yaml(HYP_YAML_FILE_PATH)
     # channels = 3 - img depth, nc = 1 - number classes
     model = Model(cfg=MODEL_CONFIG_PATH, ch=3, nc=1)
@@ -264,6 +266,7 @@ def _build_checkpoint(checkpoint_file_path):
         model_config=model.yaml,
         optimizer=optimizer,
         scheduler=scheduler,
+        imgsz=IMGSZ,
         initial_epoch=0,
         total_epochs=TOTAL_EPOCHS,
         output_path=checkpoint_file_path
@@ -278,12 +281,13 @@ def load_yaml(yaml_path) -> dict:
 if __name__ == '__main__':
     full_dataset = load_dataset_csv()
     checkpoint = get_or_load_checkpoint(CHECKPOINT_PATH)
+    imgsz = checkpoint.get_checkpoint_img_size()
     hyps = checkpoint.get_hyps()
     train_loader = get_winterized_dataloader(
         full_dataset, set_label='train', hyp=hyps, batch_size=20,
-        imgsz=IMGSZ, shuffle=True, augment=True)
+        imgsz=imgsz, shuffle=True, augment=True)
     valid_loader = get_winterized_dataloader(
-        full_dataset, set_label='valid', hyp=hyps, batch_size=40, imgsz=IMGSZ, shuffle=False)
+        full_dataset, set_label='valid', hyp=hyps, batch_size=40, imgsz=imgsz, shuffle=False)
 
     model, optimizer, scheduler, epoch = checkpoint.load_train_checkpoint(
         map_device=DEVICE

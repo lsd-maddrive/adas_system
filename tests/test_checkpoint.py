@@ -16,6 +16,7 @@ from maddrive_adas.utils.torch_utils import smart_optimizer
 TEST_BUILD_CHECKPOINT_PATH = './test'
 INITIAL_EPOCH = 3
 TOTAL_EPOCHS = 300
+IMAGE_SIZE = 412
 
 
 @pytest.fixture
@@ -50,6 +51,7 @@ def test_build_checkpoint(model_config, hyps):
         model_config=model_config,
         scheduler=scheduler,
         optimizer=optimizer,
+        imgsz=IMAGE_SIZE,
         initial_epoch=INITIAL_EPOCH,
         total_epochs=TOTAL_EPOCHS,
         output_path=TEST_BUILD_CHECKPOINT_PATH,
