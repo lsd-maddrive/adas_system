@@ -81,3 +81,6 @@ exclude = '''
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "checkpoint: checkpoint related test (deselect with '-m \"not checkpoint\"')",
+]
