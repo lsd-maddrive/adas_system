@@ -32,7 +32,7 @@ def get_model_and_img_size(
 
     model = getattr(
         importlib.import_module('torchvision.models'),
-        f'{model_data["base"]}')(pretrained=True)
+        f'{model_data["base"]}')()
     if 'efficientnet' in model_data["base"]:
         model.classifier[1] = torch.nn.Linear(
             in_features=model.classifier[1].in_features,
