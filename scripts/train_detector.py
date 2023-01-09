@@ -23,7 +23,7 @@ from maddrive_adas.utils.torch_utils import smart_optimizer
 PROJECT_ROOT = get_project_root()
 DATA_DIR = PROJECT_ROOT / 'SignDetectorAndClassifier' / 'data'
 DATASET_DIR = DATA_DIR / 'YOLO_DATASET'
-CHECKPOINT_PATH = DATA_DIR / 'test.pt'
+CHECKPOINT_PATH = DATA_DIR / 'YOLO_CP_m.pt'
 HYP_YAML_FILE_PATH = DATA_DIR / "hyp.scratch.yaml"
 MODEL_CONFIG_PATH = DATA_DIR / 'yolov5m_custom_anchors.yaml'
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -62,6 +62,7 @@ def train(
     nw = max(round(hyp['warmup_epochs'] * nb), 1000)
     nbs = 64  # nominal batch size
     batch_size = train_loader.batch_size
+    accumulate = max(round(nbs / batch_size), 1)  # accumulate loss before optimizing
     last_opt_step = -1
 
     ema = ModelEMA(model)
@@ -103,8 +104,13 @@ def train(
                 )
                 for j, x in enumerate(optimizer.param_groups):
                     # bias lr falls from 0.1 to lr0, all other lrs rise from 0.0 to lr0
-                    x['lr'] = np.interp(ni, xi, [hyp['warmup_bias_lr'] if j ==
-                                        2 else 0.0, x['initial_lr'] * scheduler.lr_lambdas[0](epoch)])
+                    if j == 2:
+                        fp_ = hyp['warmup_bias_lr']
+                    else:
+                        fp_ = 0.0
+                    x['lr'] = np.interp(
+                        ni, xi,
+                        [fp_, x['initial_lr'] * scheduler.lr_lambdas[0](epoch)])
                     if 'momentum' in x:
                         x['momentum'] = np.interp(ni, xi, [hyp['warmup_momentum'], hyp['momentum']])
 
