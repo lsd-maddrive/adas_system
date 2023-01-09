@@ -29,7 +29,7 @@ class YoloV5Detector(AbstractSignDetector):
         self._img_size = (self._img_size, self._img_size)
         self._model = self._checkpoint.load_eval_checkpoint(map_device=self._device)
 
-    def _transform_single_img(self, img: np.ndarray) -> torch.Tensor:
+    def transform_img_to_square_tensor(self, img: np.ndarray) -> torch.Tensor:
         """Transform single img to model input.
 
         Args:
@@ -104,7 +104,7 @@ class YoloV5Detector(AbstractSignDetector):
 
         # transform to list to batch
         # TODO: this might be slow, use torch.tensor in future
-        transformed_imgs = [self._transform_single_img(img) for img in imgs]
+        transformed_imgs = [self.transform_img_to_square_tensor(img) for img in imgs]
         batch = torch.cat(transformed_imgs, dim=0).to(self._device)
         preds = self._model(batch)[0]   # why 0? models.common:398 DetectMultiBackend
         # i realy dont know what model output contains besides coords

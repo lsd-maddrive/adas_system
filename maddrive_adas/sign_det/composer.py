@@ -35,5 +35,5 @@ class BasicSignsDetectorAndClassifier(AbstractComposer):
         self,
         img: np.ndarray,
         **kwargs
-    ) -> Tuple[DetectedInstance, Tuple[str, float]]:
+    ) -> Tuple[DetectedInstance, List[Tuple[str, float]]]:
         return self.detect_and_classify_batch([img], **kwargs)[0]
