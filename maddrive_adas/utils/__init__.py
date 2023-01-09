@@ -1,1 +1,1 @@
-from .env import is_debug
+from .env import is_debug, get_project_root
