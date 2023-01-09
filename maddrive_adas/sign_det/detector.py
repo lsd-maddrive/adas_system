@@ -5,50 +5,29 @@ import numpy as np
 
 from .base import AbstractSignDetector, DetectedInstance
 from maddrive_adas.utils.general import non_max_suppression, scale_coords
-from maddrive_adas.models.yolo import Model
 from maddrive_adas.utils.augmentations import letterbox
-
-REQUIRED_ARCHIVE_KEYS = ['model', 'input_image_size', 'model_config']
+from maddrive_adas.utils.checkpoint import Checkpoint
 
 
 class YoloV5Detector(AbstractSignDetector):
+    """Traffic sign detector."""
 
     def __init__(
         self,
-        config_path: str,
-        device: torch.device = None,
+        model_archive_file_path: str,
+        device: torch.device,
+        iou_thres: float,
+        conf_thres: float
     ):
-        """Detector Constructor.
+        self._iou_thres = iou_thres
+        self._conf_thres = conf_thres
 
-        Args:
-            config_path (str): path to archive with REQUIRED_ARCHIVE_KEYS.
-            device (torch.device, optional): specific torch.device. Defaults to None.
-        """
         self._device = device if device else torch.device(
             'cuda' if torch.cuda.is_available() else 'cpu')
-
-        model_dict: dict = torch.load(config_path)
-        assert(all([key in model_dict.keys() for key in REQUIRED_ARCHIVE_KEYS])
-               ), f'Verify model archive keys. It should contain {REQUIRED_ARCHIVE_KEYS}'
-
-        self._img_size = (
-            model_dict['input_image_size'],
-            model_dict['input_image_size']
-        )
-
-        self._model = Model(
-            cfg=dict(model_dict['model_config']),
-            ch=3,
-            nc=1
-        )
-
-        self._model.load_state_dict(
-            model_dict['model']
-        )
-
-        # Do not forget to eval after weights loaded, lmao
-        self._model.eval()
-        self._model.to(self._device)
+        self._checkpoint = Checkpoint(model_archive_file_path)
+        self._img_size = self._checkpoint.get_checkpoint_img_size()
+        self._img_size = (self._img_size, self._img_size)
+        self._model = self._checkpoint.load_eval_checkpoint(map_device=self._device)
 
     def _transform_single_img(self, img: np.ndarray) -> torch.Tensor:
         """Transform single img to model input.
@@ -67,30 +46,21 @@ class YoloV5Detector(AbstractSignDetector):
         frame = frame[None, ...]    # add 4 dim
         return frame
 
-    # TODO: hardcoded args, move it to model config archive-dict
     @staticmethod
     def translatePreds(
         pred,
         nn_img_size,
         source_img_size,
-        conf_thres=0.25,
-        iou_thres=0.45,
-        classes=None,
-        agnostic=False,
-        multi_label=False,
-        labels=(),
-        max_det=300,
+        conf_thres,
+        iou_thres,
+        max_det,
     ) -> List[dict]:    # TODO: fix annotation
 
         pred = non_max_suppression(
             pred,
             conf_thres=conf_thres,
             iou_thres=iou_thres,
-            classes=classes,
-            agnostic=agnostic,
-            multi_label=multi_label,
-            labels=labels,
-            max_det=max_det,
+            max_det=max_det
         )
 
         ret_list: List[DetectedInstance] = []
@@ -114,8 +84,6 @@ class YoloV5Detector(AbstractSignDetector):
     def detect_batch(
         self,
         imgs: List[np.ndarray],
-        d_conf_thres=0.5,
-        d_iou_thres=0.5
     ) -> List[DetectedInstance]:
         """Returs list of subimages - detected signs.
 
@@ -127,7 +95,7 @@ class YoloV5Detector(AbstractSignDetector):
         Returns:
             List[DetectedInstance]: DetectedInstance image description.
         """
-        if len(imgs) == 0:
+        if not imgs:
             return []
 
         original_img_size: List[int] = []
@@ -145,9 +113,8 @@ class YoloV5Detector(AbstractSignDetector):
             preds,
             self._img_size,  # scaled img for model
             original_img_size,  #
-            # TODO: cardcoded arg
-            conf_thres=d_conf_thres,
-            iou_thres=d_iou_thres,
+            conf_thres=self._conf_thres,
+            iou_thres=self._iou_thres,
             max_det=20)
 
         # transform to DetectedInstance
@@ -161,7 +128,7 @@ class YoloV5Detector(AbstractSignDetector):
 
         return ret_list
 
-    def detect(self, img: np.ndarray, d_conf_thres=0.5, d_iou_thres=0.5) -> DetectedInstance:
+    def detect(self, img: np.ndarray) -> DetectedInstance:
         """Detect sign on img.
 
         Args:
@@ -170,4 +137,4 @@ class YoloV5Detector(AbstractSignDetector):
         Returns:
             List[Tuple[float, float, float, float]]: List of relative sign coordinates.
         """
-        return self.detect_batch([img], d_conf_thres=d_conf_thres, d_iou_thres=d_iou_thres)[0]
+        return self.detect_batch([img])[0]
