@@ -42,7 +42,8 @@ class Checkpoint:
             self._verify_dict()
             self._hyps: dict = self._dict[Checkpoint._HYPS]
         except FileNotFoundError:
-            raise ValueError(f"File {checkpoint_file_path} doesn't exists.")
+            msg = f"File {checkpoint_file_path} doesn't exists."
+            raise ValueError(msg)
 
     def _verify_dict(self):
         if all(x in self._dict for x in Checkpoint._REQUIRED_KEYS):
