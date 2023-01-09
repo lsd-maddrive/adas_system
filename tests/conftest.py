@@ -14,6 +14,12 @@ def test_data_dpath():
     test_data_dpath = Path(__file__).parent / "test_data"
     return test_data_dpath
 
+
+@pytest.fixture
+def checkpoint_test_data_path(test_data_dpath):
+    checkpoint_data = test_data_dpath / 'test_checkpoint_data'
+    return checkpoint_data
+
 # Detector
 
 
