@@ -83,4 +83,8 @@ exclude = '''
 testpaths = ["tests"]
 markers = [
     "checkpoint: checkpoint related test (deselect with '-m \"not checkpoint\"')",
+    "detector: detector related test. Requires model: detector_archive",
+    "classifier: classifier related test. Checks model on different images. Requires model: classifier_archive",
+    "subclassifier: subclassifier related test. Checks model on different images. Requires model: subclassifier_archive",
+    "composer: composer related test. Checks only output types, requires model: detector_archive, classifier_archive",
 ]

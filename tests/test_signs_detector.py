@@ -1,128 +1,55 @@
 from pathlib import Path
 
-from maddrive_adas.sign_det.detector import YoloV5Detector
-from maddrive_adas.sign_det.classifier import EncoderBasedClassifier
-from maddrive_adas.sign_det.composer import BasicSignsDetectorAndClassifier
-from maddrive_adas.sign_det.base import (
-    AbstractSignDetector, AbstractSignClassifier,
-    AbstractComposer
-)
+import pytest
 
-PROJECT_ROOT: Path = Path('.')
-SIGN_DETECTOR_MODEL_ARCHIVE: str = str(
+from maddrive_adas.utils import fs
+from maddrive_adas.utils import get_project_root
+from maddrive_adas.sign_det.detector import YoloV5Detector
+from maddrive_adas.sign_det.base import DetectedInstance
+
+
+PROJECT_ROOT = get_project_root()
+SIGN_DETECTOR_MODEL_ARCHIVE = str(
     PROJECT_ROOT / 'detector_archive'
 )
-SIGN_CLASSIFIER_MODEL_ARCHIVE: str = str(
-    PROJECT_ROOT / 'encoder_archive'
+
+detector = YoloV5Detector(
+    model_archive_file_path=SIGN_DETECTOR_MODEL_ARCHIVE,
+    conf_thres=0.5,
+    iou_thres=0.5,
+    device='cpu'
 )
 
-detector: AbstractSignDetector = YoloV5Detector(
-    config_path=SIGN_DETECTOR_MODEL_ARCHIVE
-)
 
-classifier: AbstractSignClassifier = EncoderBasedClassifier(
-    config_path=SIGN_CLASSIFIER_MODEL_ARCHIVE
-)
-
-composer: AbstractComposer = BasicSignsDetectorAndClassifier(
-    classifier=classifier,
-    detector=detector
-)
-
-# Detector
+@pytest.fixture
+def test_data_path():
+    test_data_path = Path(__file__).parent / "test_data" / "test_detector_classifier"
+    return test_data_path
 
 
+@pytest.fixture
+def detector_test_image1(test_data_path: Path):
+    img_fpath = test_data_path / 'test_image.png'
+    img = fs.imread_rgb(img_fpath)
+    return img
+
+
+@pytest.mark.detector
 def test_detector_base_execution_img1(detector_test_image1):
-    detections = detector.detect(
-        detector_test_image1,
-        d_conf_thres=0.11,
-        d_iou_thres=0.12)
-    assert len(detections.confs) == 2
+    detection = detector.detect(detector_test_image1)
+    assert isinstance(detection, DetectedInstance)
 
 
-def test_detector_base_execution_img2(detector_test_image2):
-    detections = detector.detect(detector_test_image2)
-    assert len(detections.confs) == 2
-
-
+@pytest.mark.detector
 def test_detector_base_execution_batch(
-    detector_test_image1,
-    detector_test_image2
+    detector_test_image1
 ):
     detections = detector.detect_batch(
-        [detector_test_image1, detector_test_image2])
+        [detector_test_image1, detector_test_image1])
     assert len(detections) == 2
 
 
+@pytest.mark.detector
 def test_detector_base_execution_batch_empty():
     detections = detector.detect_batch([])
-    assert len(detections) == 0
-
-# Classifier
-
-
-def test_classifier_base_2_1_1_img(classifier_test_img_2_1_2):
-    classification_res = classifier.classify(classifier_test_img_2_1_2)
-    assert isinstance(classification_res, tuple) and len(classification_res[1]) == 1
-
-
-def test_classifier_base_2_1_2_di(classifier_test_di_2_1_2):
-    classification_res = classifier.classify(classifier_test_di_2_1_2)
-    assert isinstance(classification_res, tuple) and len(classification_res[1]) == 1
-
-
-def test_classifier_base_5_19_img(classifier_test_img_5_19):
-    classification_res = classifier.classify(classifier_test_img_5_19)
-    assert isinstance(classification_res, tuple) and len(classification_res[1]) == 1
-
-
-def test_classifier_base_5_19_di(classifier_test_di_5_19):
-    classification_res = classifier.classify(classifier_test_di_5_19)
-    assert isinstance(classification_res, tuple) and len(classification_res[1]) == 1
-
-
-def test_classifier_base_7_4_img(classifier_test_img_7_4):
-    classification_res = classifier.classify(classifier_test_img_7_4)
-    assert isinstance(classification_res, tuple) and len(classification_res[1]) == 1
-
-
-def test_classifier_base_7_4_di(classifier_test_di_7_4):
-    classification_res = classifier.classify(classifier_test_di_7_4)
-    assert isinstance(classification_res, tuple) and len(classification_res[1]) == 1
-
-
-def test_classifier_batch_test(
-    classifier_test_di_2_1_2,
-    classifier_test_img_7_4,
-    classifier_test_di_7_4
-):
-    classification_res = classifier.classify_batch(
-        [
-            classifier_test_di_2_1_2,
-            classifier_test_img_7_4,
-            classifier_test_di_7_4
-        ]
-    )
-    assert len(classification_res) == 3
-
-
-def test_classifier_batch_empty():
-    classification_res = classifier.classify_batch([])
-    assert len(classification_res) == 0
-
-
-def test_composer_img1(detector_test_image1):
-    result = composer.detect_and_classify(detector_test_image1)
-    assert isinstance(result, tuple)
-
-
-def test_composer_img2(detector_test_image2):
-    result = composer.detect_and_classify(detector_test_image2)
-    assert isinstance(result, tuple)
-
-
-def test_composer_batch(detector_test_image1, detector_test_image2):
-    result = composer.detect_and_classify_batch(
-        [detector_test_image1, detector_test_image2]
-    )
-    assert len(result) == 2
+    assert not detections

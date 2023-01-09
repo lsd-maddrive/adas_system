@@ -6,17 +6,23 @@ import pytest
 from torch.optim import lr_scheduler
 from torch.optim.optimizer import Optimizer
 
-
+from maddrive_adas.utils import get_project_root
 from maddrive_adas.models.yolo import Model
 from maddrive_adas.utils.checkpoint import Checkpoint
 from maddrive_adas.utils.general import one_cycle
 from maddrive_adas.utils.torch_utils import smart_optimizer
 
 
+PROJECT_ROOT = get_project_root()
 TEST_BUILD_CHECKPOINT_PATH = './test'
 INITIAL_EPOCH = 3
 TOTAL_EPOCHS = 300
 IMAGE_SIZE = 412
+
+
+@pytest.fixture
+def checkpoint_test_data_path():
+    return get_project_root() / 'tests' / 'test_data' / 'test_checkpoint_data'
 
 
 @pytest.fixture
