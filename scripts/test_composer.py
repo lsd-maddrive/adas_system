@@ -44,12 +44,11 @@ def build_composer(args: argparse.Namespace) -> BasicSignsDetectorAndClassifier:
 def process_video(model: BasicSignsDetectorAndClassifier, video_file_path: str):
     video_frame_gen = video_frame_generator(video_file_path)
 
-    while True:
+    for frame in video_frame_gen:
         t0 = datetime.datetime.now()
-        frame = next(video_frame_gen)
         pred = model.detect_and_classify(frame)
         video_frame = plot_predictions(pred, frame)
-        video_frame = image_resize(video_frame, height=720)
+        video_frame = image_resize(video_frame, height=920)
         dt = datetime.datetime.now() - t0
         frame = plot_fps(video_frame, dt)
         show_frame(frame)
