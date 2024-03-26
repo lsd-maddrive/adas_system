@@ -4,7 +4,7 @@ import numpy as np
 import cv2
 
 
-class DetectedInstance:  # TODO: remove detected sign class?
+class DetectedInstance:
     """Describes instance for classifier.
     """
 
@@ -162,7 +162,6 @@ class AbstractComposer:
     """Composes AbstatractSignsDetector & AbstatractSignsClassifier.
     """
 
-    # TODO: allow to use only this constructor
     def __init__(self, detector: AbstractSignDetector, classifier: AbstractSignClassifier):
         """Composes Detector and Classifier.
 
@@ -172,12 +171,14 @@ class AbstractComposer:
         """
         raise NotImplementedError()
 
-    # TODO: fix my name and return types please
-    # List[Tuple[str, float]]:
-    def detect_and_classify_batch(self, imgs: List[np.ndarray], **kwargs) -> None:
+    def detect_and_classify_batch(
+        self,
+        imgs: List[np.ndarray], **kwargs
+    ) -> List[Tuple[DetectedInstance, List[Tuple[str, float]]]]:
         raise NotImplementedError()
 
-    # TODO: same
-    # List[Tuple[str, float]]:
-    def detect_and_classify(self, imgs: List[np.ndarray], **kwargs) -> None:
+    def detect_and_classify(
+        self,
+        imgs: List[np.ndarray], **kwargs
+    ) -> Tuple[DetectedInstance, List[Tuple[str, float]]]:
         raise NotImplementedError()
